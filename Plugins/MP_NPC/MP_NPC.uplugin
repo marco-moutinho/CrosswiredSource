@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "MP_NPC",
+	"Description": "",
+	"Category": "[ Jump Start Collection ]",
+	"CreatedBy": "Marco André Alves Moutinho",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "MP_NPC",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
