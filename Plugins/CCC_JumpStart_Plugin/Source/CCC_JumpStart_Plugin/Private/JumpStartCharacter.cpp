@@ -24,7 +24,12 @@ AJumpStartCharacter::AJumpStartCharacter()
 	M_Camera_Ptr = CreateDefaultSubobject<UCameraComponent>(TEXT("QS Camera Component"));
 	// Attach it
 	M_Camera_Ptr->SetupAttachment(M_SpringArm_Ptr);
+}
 
+void AJumpStartCharacter::OnConstruction(const FTransform& Transform)
+{
+	// Auto initialize the JumpStartCharacter
+	if (_AutoInit) { Function_InitializeJumpStartCharacter(); }
 }
 
 // Called when the game starts or when spawned
@@ -39,7 +44,15 @@ void AJumpStartCharacter::Function_SetThirdPersonControlSettings()
 	bUseControllerRotationYaw = false;
 	M_SpringArm_Ptr->bUsePawnControlRotation = true;
 	M_Camera_Ptr->bUsePawnControlRotation = false;
-	this->GetCharacterMovement()->bOrientRotationToMovement = true; // if false it can "strafe"
+
+	if (_CanStrafeInThirdPerson) { 
+		this->GetCharacterMovement()->bOrientRotationToMovement = false; }
+	else { 
+		this->GetCharacterMovement()->bOrientRotationToMovement = true; }
+
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Third Person Control Settings Applied"));
+	}
 }
 
 void AJumpStartCharacter::Function_SetFirstPersonControlSettings()
@@ -48,6 +61,27 @@ void AJumpStartCharacter::Function_SetFirstPersonControlSettings()
 	M_SpringArm_Ptr->bUsePawnControlRotation = true;
 	M_Camera_Ptr->bUsePawnControlRotation = true;
 	this->GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("First Person Control Settings Applied"));
+	}
+}
+
+void AJumpStartCharacter::Function_InitializeJumpStartCharacter()
+{
+	
+	// Set initial POV
+	switch (_InitialPOV)
+	{
+	case E_POV::First:
+		Function_SetFirstPersonControlSettings();
+		M_SpringArm_Ptr->TargetArmLength = 0.0f;
+		break;
+	case E_POV::Third:
+		Function_SetThirdPersonControlSettings();
+		M_SpringArm_Ptr->TargetArmLength = _ThirdPersonSpringArmLenght;
+		break;
+	}
 }
 
 // Called every frame

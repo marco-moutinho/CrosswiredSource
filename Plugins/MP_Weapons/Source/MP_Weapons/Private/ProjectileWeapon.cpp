@@ -57,7 +57,7 @@ void AProjectileWeapon::Method_Using()
 void AProjectileWeapon::Function_ShootWeaponTrace()
 {
 	// Placeholder code to setup trace start point and direction .................................................................................||
-	_TraceStartPoint = GetActorLocation() + GetActorForwardVector() * Ph_StartPointOffset; // WIP, this should come from a Socket on the weapon mesh
+	_TraceStartPoint = GetActorLocation() + GetActorRotation().RotateVector(Ph_StartPointOffset); // WIP, this should come from a Socket on the weapon mesh
 	_TraceDirection = GetActorForwardVector();
 
 	// Debug message to indicate method call .................................
@@ -87,6 +87,8 @@ void AProjectileWeapon::Function_ShootWeaponTrace()
 		1, // DepthPriority
 		1.0f // Thickness
 	);
+
+	DrawDebugPoint( GetWorld(), _TraceStartPoint, 10, FColor::Blue, false, -1, 1);
 }
 
 void AProjectileWeapon::Method_SetProjectileDestinationPoint()

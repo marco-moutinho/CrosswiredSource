@@ -58,7 +58,7 @@ protected:
 	FHitResult TraceResult;
 
 	UPROPERTY()
-	AActor* OwningActor;
+	AActor* OwningActorPtr;
 
 	// DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS |
 	
@@ -135,8 +135,12 @@ public:
 	/*UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
 	virtual void Function_TraceFromCamera(FHitResult& OutHitResult, FVector& OutTraceStart, FVector& OutTraceEnd);*/
 
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_EquipCurrentWeapon(AWeaponBase* InWeaponRef);
+
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 12-Jan-2026 / Last changed on 13-Jan-2026
+	virtual void Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr);
+
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 13-Jan-2026 / Last changed on 13-Jan-2026
+	virtual void Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
 	virtual void Function_UnequipCurrentWeapon();

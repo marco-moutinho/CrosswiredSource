@@ -1,8 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "WeaponUser.h"
 
 #include "WeaponDefinitionPDA.h"
 #include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
 UWeaponUser::UWeaponUser()
@@ -21,12 +22,12 @@ void UWeaponUser::BeginPlay()
 	Super::BeginPlay();
 
 	// Set OwningActor ptr
-	OwningActor = GetOwner();
-	if (OwningActor)
+	OwningActorPtr = GetOwner();
+	if (OwningActorPtr)
 	{
 		if (GEngine)
 		{
-			FString _1msg = FString::Printf(TEXT("%s UWeaponUser::BeginPlay() - %s"), *this->GetName(), *OwningActor->GetName());
+			FString _1msg = FString::Printf(TEXT("%s UWeaponUser::BeginPlay() - %s"), *this->GetName(), *OwningActorPtr->GetName());
 			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::White, _1msg);
 
 		}
@@ -57,14 +58,14 @@ void UWeaponUser::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 void UWeaponUser::Function_AutoSetCameraComponentPointer()
 {
 	// Check it
-	if (OwningActor)
+	if (OwningActorPtr)
 	{
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, "Owner: " + OwningActor->GetName()); }
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, "Owner: " + OwningActorPtr->GetName()); }
 		//UActorComponent* L_CamComp = OwningActor->GetComponentByClass<UCameraComponent>();
-		CameraComponentPtr = OwningActor->GetComponentByClass<UCameraComponent>();
+		CameraComponentPtr = OwningActorPtr->GetComponentByClass<UCameraComponent>();
 		if (!CameraComponentPtr)
 		{
-			if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + "UWeaponUser::Function_SetCameraComponentPointer() - Can�t Get UCameraComponent of owner;"); }
+			if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + "UWeaponUser::Function_SetCameraComponentPointer() - Can´t Get UCameraComponent of owner;"); }
 		}
 		else
 		{
@@ -82,13 +83,82 @@ void UWeaponUser::Function_ManualSetCameraComponentPointer(UCameraComponent* InP
 	CameraComponentPtr = InPointer;
 }
 
-void UWeaponUser::Function_EquipCurrentWeapon(AWeaponBase* InWeaponRef)
+void UWeaponUser::Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr)
 {
-	// Set the current weapon pointer;
-	CurrentWeaponPtr = InWeaponRef;
+	/// 1st - Safety checks
+	if (InWeaponDef == nullptr) // Safety check
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef is null"); }
+				return;
+	}
 
-	// Attach the weapon to the character's mesh at the appropriate socket
-	//... (Attachment logic goes here)
+	if(OwningActorPtr == nullptr) // Safety check
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - OwningActorPtr is null"); }
+				return;
+	}
+
+	if(InWeaponDef->WeaponSoftClassPtr == nullptr) // Safety check
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef->WeaponSoftClassPtr is null"); }
+				return;
+	}
+
+	/// 2nd - Load and Spawn the weapon actor class
+	// Load the weapon class from the definition
+	TSubclassOf<AWeaponBase> L_WeaponClass = InWeaponDef->WeaponSoftClassPtr.LoadSynchronous();
+	
+	if(L_WeaponClass == nullptr) // Safety check
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - Loaded Weapon Class is null"); }
+				return;
+	}
+
+	/// 3rd - Prepare Spawn Parameters
+	// Spawn Parameters
+	FActorSpawnParameters L_SpawnParams;
+	L_SpawnParams.Owner = OwningActorPtr;
+	L_SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	/// 4th - Spawn the weapon actor deferred
+	// Spawn the weapon actor
+	AWeaponBase* L_WeaponPtr = GetWorld()->SpawnActorDeferred<AWeaponBase>(L_WeaponClass, FTransform::Identity, OwningActorPtr, nullptr, L_SpawnParams.SpawnCollisionHandlingOverride);
+
+	if(L_WeaponPtr == nullptr) // Safety check
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - Spawned Weapon is null"); }
+				return;
+	}
+
+	/// 5th - Initialize the weapon from the definition
+	L_WeaponPtr->Function_InitializeFromDefinition(InWeaponDef);
+
+	/// 6th - Finish Spawning the weapon actor
+	UGameplayStatics::FinishSpawningActor(L_WeaponPtr, FTransform::Identity);
+
+	// Set Output pointer
+	OutSpawnedWeaponPtr = L_WeaponPtr;
+
+	/* Note about Spawning Actors Deferred vs Instant / Normal:
+	* SpawnActor (instant)			  : Constructor → BeginPlay → Your code
+	* SpawnActorDeferred (controlled) : Constructor → Your code → FinishSpawning → BeginPlay
+	*/
+}
+
+void UWeaponUser::Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent)
+{
+	// Safety checks
+	if (InWeaponRef == nullptr) {
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_AttachWeaponToHands - InWeaponRef is null"); }
+				return;
+	}
+	if (InSceneComponent == nullptr) {
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_AttachWeaponToHands - InSceneComponent is null"); }
+				return;
+	}
+
+	// Attach the weapon to the specified scene component
+	InWeaponRef->AttachToComponent(InSceneComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
 void UWeaponUser::Function_UnequipCurrentWeapon()
@@ -105,7 +175,7 @@ void UWeaponUser::Function_UseCurrentWeapon()
 
 void UWeaponUser::Function_TraceFromPov(FHitResult& OutHitResult)
 {
-	if (CameraComponentPtr == nullptr || OwningActor == nullptr)
+	if (CameraComponentPtr == nullptr || OwningActorPtr == nullptr)
 	{
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 30, FColor::Red, "Component Pointer is null"); }
 		return;
@@ -117,7 +187,7 @@ void UWeaponUser::Function_TraceFromPov(FHitResult& OutHitResult)
 	FCollisionShape L_Shape = FCollisionShape::MakeSphere(PovTraceSphereRadius);
 
 	FCollisionQueryParams L_QueryParams;
-	L_QueryParams.AddIgnoredActor(OwningActor);
+	L_QueryParams.AddIgnoredActor(OwningActorPtr);
 
 	// perfrom trace
 	bool bHit = GetWorld()->SweepSingleByProfile(TraceResult, L_TraceStart, L_TraceEnd, L_TraceQuat, PovTraceProfile.Name, L_Shape, L_QueryParams);

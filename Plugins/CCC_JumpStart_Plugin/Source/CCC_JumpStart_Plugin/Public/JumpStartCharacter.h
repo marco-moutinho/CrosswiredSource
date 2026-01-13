@@ -14,12 +14,32 @@
 class USpringArmComponent;
 class UCameraComponent;
 
+// POV Enum
+UENUM(BlueprintType) // Created on 13-jan-2026
+enum class E_POV : uint8
+{
+	First UMETA(DisplayName = "First Person"),
+	Third UMETA(DisplayName = "Third Person")
+};
+
 UCLASS()
 class CCC_JUMPSTART_PLUGIN_API AJumpStartCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
 protected:
+	// Jumpstart settings:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Settings")
+	bool _AutoInit = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|ThirdPerson")
+	float _ThirdPersonSpringArmLenght = 600.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|ThirdPerson")
+	bool _CanStrafeInThirdPerson = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Settings")
+	E_POV _InitialPOV = E_POV::First;
 
 	// Character Components...
 
@@ -55,6 +75,10 @@ public:
 	AJumpStartCharacter();
 
 protected:
+
+	// Call on Construction
+	virtual void OnConstruction(const FTransform& Transform) override;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
@@ -63,6 +87,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]", meta = (ToolTip = "This sets the settings of: [ Character itself, CharacterMovementComponent, SpringArm, Camera ], so it behaves like a classic first person character."))
 	virtual void Function_SetFirstPersonControlSettings();
+
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]", meta = (ToolTip = "Initializes the JumpStart Character by creating and setting up its components according to the specified parameters."))
+	virtual void Function_InitializeJumpStartCharacter();
 
 public:	
 	// Called every frame

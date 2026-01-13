@@ -40,7 +40,7 @@ public:
 	/* ------------------------------------------------------------------------------------------
 	* Trace a line to see if we hit anything, from the weapon's muzzle forward up to TraceRange;
 	* ( public ) ( virtual )
-	* [ Added on 29/11/2025 ] [ Updated on 02/12/2025 ]
+	* [ Added on 29/11/2025 ] [ Updated on 13/jan/2026 ]
 	--------------------------------------------------------------------------------------------*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
 	virtual void Function_ShootWeaponTrace();
