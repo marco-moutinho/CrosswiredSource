@@ -23,17 +23,14 @@ class MP_WEAPONS_API UWeaponDefinitionPDA : public UPrimaryDataAsset
 public:
 
 	// Weapon Actor
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "[ Weapon Definition Properties ]")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "[ Weapon Definition Properties ]|Base Class")
 	TSoftClassPtr<AWeaponBase> WeaponSoftClassPtr;
 
-	// Weapon Default Projectile
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "[ Weapon Definition Properties ]")
-	TSoftClassPtr<AProjectileBase> WeaponProjectileClassPtr;
-
 	// Weapon Icon
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "[ Weapon Definition Properties ]")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "[ Weapon Definition Properties ]|Base Class")
 	TSoftObjectPtr<UTexture2D> WeaponIcon;
 
-	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "[ Weapon Definition Properties ]|Base Class")
+	TSoftObjectPtr<UWeaponPDA> WeaponDataPDA;
 
 };

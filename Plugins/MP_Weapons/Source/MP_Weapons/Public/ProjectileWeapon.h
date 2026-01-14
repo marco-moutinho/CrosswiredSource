@@ -31,9 +31,8 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void Function_StartUse() override;
-	virtual void Function_StopUse() override;
-	virtual void Method_Using() override;
+	// Override base weapon functions...
+	virtual void Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA) override;
 
 	// Projectile Weapon Specific Functions | Projectile Weapon Specific Functions | Projectile Weapon Specific Functions | Projectile Weapon Specific Functions |
 	
@@ -64,6 +63,13 @@ protected:
 	virtual void Method_SpawnProjectile();
 
 
+	// Added on 14-Jan-2026
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
+	virtual void Function_LoadProjectileClass();
+
+	// Added on 14-Jan-2026
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
+	virtual void Function_InitializeProjectileSubClassData();
 
 	// Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties |
 protected:
@@ -74,6 +80,9 @@ protected:
 	// Trace range distance ( protected )
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category = "[ Projectile Subclass Properties ]")
 	float _TraceRange;
+
+	UPROPERTY(BlueprintReadWrite, Category = "[ RTO ]|Projectile Subclass")
+	float _WeaponFireRate;
 
 	// Trace hit result ( protected )
 	UPROPERTY(BlueprintReadWrite, Category = "[ RTO ]|Projectile Subclass")

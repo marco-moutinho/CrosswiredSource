@@ -1,7 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "ProjectileWeapon.h"
+
+#include "WeaponPDA.h"
+#include "ProjectileWeaponPDA.h"
+#include "WeaponDefinitionPDA.h"
 
 AProjectileWeapon::AProjectileWeapon()
 {
@@ -35,39 +39,88 @@ void AProjectileWeapon::Tick(float DeltaTime)
 	Function_ShootWeaponTrace();
 }
 
-void AProjectileWeapon::Function_StartUse()
+void AProjectileWeapon::Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA)
 {
-	// Debug message to indicate method call...
-	if (GEngine && bDebugMode) {
-		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Silver,
-			"[" + this->GetName() + "]" + " AProjectileWeapon::Method_StartUse()" +
-			" | Called from : " + GetOwner()->GetName());
+	/// WeaponDefinitionPDA
+	/// |-> TSoftClassPtr<AWeaponBase> WeaponSoftClassPtr;
+	/// |-> TSoftObjectPtr<UTexture2D> WeaponIcon;
+	/// |-> TSoftObjectPtr<UWeaponPDA> WeaponDataPDA;
+	///	|			       |--> UProjectileWeaponPDA ---> I need to reach here
+	/// 
+	/// UWeaponPDA > UProjectileWeaponPDA
+	
+	/*
+	* [ NOTE on UE C++ ]
+	* .IsNull()          - Was it assigned?
+	* .IsValid()         - Is it loaded?
+	* .LoadSynchronous() - Loads the asset if not loaded and returns the asset pointer
+	* .Get()             - Only use after loaded.
+	*/
+
+	/*
+	* Simple mental rule
+	* "Do I only need to know the type?" → IsA 
+	+ "Do I need to use subclass data?" → Cast
+	*/
+
+	// Call parent method
+	Super::Function_InitializeFromDefinition(WeaponDefinitionPDA);
+
+	// Safety check : Check for valid Weapon Definition PDA
+	if(!IsValid(WeaponDefinitionPDA))
+	{
+		if(GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - Invalid Weapon Definition PDA!")); }
+		return;
 	}
-}
 
-void AProjectileWeapon::Function_StopUse()
-{
-}
+	// Satety check : Check if the WeaponDataPDA was set on Editor
+	if (WeaponDefinitionPDA->WeaponDataPDA.IsNull())
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - WeaponDataPDA is null! / Was Not set on Editor")); }
+		return;
+	}
 
-void AProjectileWeapon::Method_Using()
-{
+	// Load the Weapon Data PDA synchronously
+	UWeaponPDA* L_WeaponDataPDA = WeaponDefinitionPDA->WeaponDataPDA.LoadSynchronous();
+
+	// Safety check : Check if L_WeaponDataPDA was loaded successfully
+	if (!IsValid(L_WeaponDataPDA))
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - Failed to load WeaponDataPDA!")); }
+		return;
+	}
+
+	// Attempt to cast to Projectile Weapon PDA
+	const UProjectileWeaponPDA* L_ProjectileWeaponDefPDA = Cast<UProjectileWeaponPDA>(L_WeaponDataPDA);
+
+	// Safety check : Check for valid cast
+	if (!L_ProjectileWeaponDefPDA)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - Invalid Projectile Weapon Definition PDA!")); }
+		return;
+	}
+
+	// Add On Screen Debug Message to indicate successful cast
+	if (GEngine && bDebugMode) { GEngine->AddOnScreenDebugMessage(-1, 30.0f, FColor::Green, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - Successfully casted to Projectile Weapon Definition PDA!")); }
+
+	//// Initialize Projectile Weapon specific properties from the PDA
+	//_TraceRange = L_ProjectileWeaponDefPDA->WeaponTraceRange;
+	//_WeaponFireRate = L_ProjectileWeaponDefPDA->WeaponFireRate;
+	//_ProjectileClass = L_ProjectileWeaponDefPDA->ProjectileClassPtr.LoadSynchronous();
 }
 
 // WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP |
 void AProjectileWeapon::Function_ShootWeaponTrace()
 {
-	// Placeholder code to setup trace start point and direction .................................................................................||
+	// Placeholder code to setup trace start point and direction
 	_TraceStartPoint = GetActorLocation() + GetActorRotation().RotateVector(Ph_StartPointOffset); // WIP, this should come from a Socket on the weapon mesh
 	_TraceDirection = GetActorForwardVector();
 
-	// Debug message to indicate method call .................................
-	if (GEngine && bDebugMode) { GEngine->AddOnScreenDebugMessage(-1, 0.2f, FColor::White, GetName() + " | AProjectileWeapon::Method_ShootTrace()"); }
-
-	// Setup trace parameters ................................................
+	// Setup trace parameters
 	FCollisionQueryParams TraceParams;
 	TraceParams.AddIgnoredActor(this);
 
-	// Perform line trace......................................................
+	// Perform line trace
 	bool bHit = GetWorld()->LineTraceSingleByChannel(
 		_TraceHitResult,									// Out hit result
 		_TraceStartPoint,									// Start point
@@ -76,7 +129,7 @@ void AProjectileWeapon::Function_ShootWeaponTrace()
 		TraceParams											// Query parameters
 	);
 
-	// Debug line to visualize the trace ......................................
+	// Debug line to visualize the trace
 	DrawDebugLine(
 		GetWorld(),
 		_TraceStartPoint, // Start point
@@ -125,35 +178,64 @@ void AProjectileWeapon::Method_SetProjectileDestinationPoint()
 
 void AProjectileWeapon::Method_SpawnProjectile()
 {
-	//Check if it has valid projectile class to spawn .........................................................................................................................
+	//Check if it has valid projectile class to spawn
 	if(!_ProjectileClass)
 	{
-		if(GEngine  && bDebugMode) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, TEXT("AProjectileWeapon::Method_SpawnProjectile() - Projectile class is not set!")); }
+		if(GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, TEXT("AProjectileWeapon::Method_SpawnProjectile() - Projectile class is not set!")); }
 		return;
 	}
 
-	// Get world context ......................................................................................................................................................
+	// Get world context
 	UWorld* Lc_World = GetWorld();
-	if (!Lc_World) {
-		if (GEngine && bDebugMode) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, TEXT("AProjectileWeapon::Method_SpawnProjectile() - World context is invalid!")); }
+
+	// Safety check for valid world context
+	if (!Lc_World)
+	{
+		// [ Waring Message ]
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, TEXT("AProjectileWeapon::Method_SpawnProjectile() - World context is invalid!")); }
 		return;
 	}
+
+	// Setup spawn parameters
 
 	FVector SpawnLocation = _TraceStartPoint;
 	FRotator SpawnRotation = _ProjectileDirection.Rotation(); // WIP / by ChatGPT, needs testing if this will set the rotation correctly so it faces the right direction
 
-	// Debug Arrow to visualize the projectile spawn direction ................................................................................................................
-	DrawDebugDirectionalArrow(
-		GetWorld(),
-		SpawnLocation, // Start
-		SpawnLocation + (_ProjectileDirection * 100.0f), // End
-		100.0f, // ArrowSize
-		FColor::Blue,
-		false, // bPersistentLines
-		10, // LifeTime
-		0, // DepthPriority
-		5.0f // Thickness
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = GetInstigator();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// Spawn the projectile actor
+	AProjectileBase* SpawnedProjectile = Lc_World->SpawnActor<AProjectileBase>(
+		_ProjectileClass,
+		SpawnLocation,
+		SpawnRotation,
+		SpawnParams
 	);
 
+	if (bDebugMode)
+	{
+		// Debug Arrow to visualize the projectile spawn direction
+		DrawDebugDirectionalArrow(
+			GetWorld(),
+			SpawnLocation, // Start
+			SpawnLocation + (_ProjectileDirection * 100.0f), // End
+			100.0f, // ArrowSize
+			FColor::Blue,
+			false, // bPersistentLines
+			10, // LifeTime
+			0, // DepthPriority
+			5.0f // Thickness
+		);
+	}
 	
+}
+
+void AProjectileWeapon::Function_LoadProjectileClass()
+{
+}
+
+void AProjectileWeapon::Function_InitializeProjectileSubClassData()
+{
 }

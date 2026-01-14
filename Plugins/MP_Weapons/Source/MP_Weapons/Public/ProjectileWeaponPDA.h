@@ -9,8 +9,9 @@
 
 #include "ProjectileWeaponPDA.generated.h"
 
-/** Created on: [ 29/11/2025 ]
- * 
+/*
+ * Created on: [ 29/11/2025 ]
+ * Last Change : 14-Jan-2026
  */
 
 UCLASS()
@@ -21,18 +22,18 @@ class MP_WEAPONS_API UProjectileWeaponPDA : public UWeaponPDA
 public:
 
 	// Range of the weapon's trace
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Weapon ]")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Sub Class ]")
 	float WeaponTraceRange;
 
 	// Accuracy of the weapon
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Weapon ]")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Sub Class ]")
 	float WeaponAccuracy;
 
 	// Fire Rate of the weapon
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Weapon ]")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Sub Class ]")
 	float WeaponFireRate;
 
 	// Projectile class to spawn
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Weapon ]")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Sub Class ]")
 	TSoftClassPtr<AProjectileBase> ProjectileClassPtr;
 };

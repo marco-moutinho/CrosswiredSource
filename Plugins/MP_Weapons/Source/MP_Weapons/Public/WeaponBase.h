@@ -43,14 +43,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Base")
 	virtual void Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA);
 
+	// Added on 14-Jan-2026
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Base")
-	virtual void Function_StartUse();
-
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Base")
-	virtual void Function_StopUse();
-
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Base")
-	virtual void Method_Using();
+	virtual void Function_ExecuteWeaponAction();
 
 	// Weapon Base Properties | Weapon Base Properties | Weapon Base Properties | Weapon Base Properties | Weapon Base Properties | Weapon Base Properties | Weapon Base Properties |
 	

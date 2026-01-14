@@ -28,6 +28,7 @@ public class MP_Weapons : ModuleRules
 				"Core",
 				// ... add other public dependencies that you statically link with here ...
 				"UMG",
+                "EnhancedInput",
             }
 			);
 			

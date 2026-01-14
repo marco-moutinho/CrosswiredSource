@@ -4,12 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "WeaponBase.h"
-
 #include "WeaponUser.generated.h"
 
 class UWeaponDefinitionPDA;
+class UProjectileWeaponPDA;
 class AWeaponBase;
+
+UENUM()
+enum class EInputphase : uint8
+{
+	IP_OnStartPress	UMETA(DisplayName = "Start Press"),
+	IP_OnBeingHeld	UMETA(DisplayName = "Held Button"),
+	IP_OnBeingReleased UMETA(DisplayName = "Stop Press"),
+};
+
 /**
  * Created on 12/12/2025
  */
@@ -33,7 +41,12 @@ public:
 
 // Weapon User UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs | UPROPERTYs |
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Weapon User Properties ]|Flow")
+	// PLACEHOLDER STUFF:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Weapon User Properties ]|Placeholder")
+	USceneComponent* PH_WeaponAttachPoint;
+	// ...
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Weapon User Properties ]|Settings")
 	bool bAutomaticSetup = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Weapon User Properties ]|Gameplay")
@@ -134,13 +147,22 @@ protected:
 public:
 	/*UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
 	virtual void Function_TraceFromCamera(FHitResult& OutHitResult, FVector& OutTraceStart, FVector& OutTraceEnd);*/
-
-
+	/*
+	* Returns a spawned weapon actor based on the provided weapon definition;
+	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 12-Jan-2026 / Last changed on 13-Jan-2026
 	virtual void Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr);
 
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 13-Jan-2026 / Last changed on 13-Jan-2026
 	virtual void Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent);
+	/*
+	* Includes:
+	* Spawning logic such as spawning from weapon definition
+	* equipping logic such as attaching to hands socket
+	* setting CurrentWeaponPtr, etc
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 14-Jan-2026 / Last changed on 14-Jan-2026
+	virtual void Function_EquipWeapon(UWeaponDefinitionPDA* InWeaponDefPDA, AWeaponBase*& OutEquipedWeapon);
 
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
 	virtual void Function_UnequipCurrentWeapon();
@@ -148,8 +170,9 @@ public:
 	/*UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
 	virutal void Function_SwitchWeapon();*/
 
+	// Added on 14-Jan-2026 / Last changed on 14-Jan-2026
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_UseCurrentWeapon();
+	virtual void Function_UseCurrentWeapon(EInputphase InInputphase);
 
 	/*
 	* Performs a trace from player character aka pov

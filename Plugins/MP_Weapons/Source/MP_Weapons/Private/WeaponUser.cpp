@@ -2,6 +2,8 @@
 #include "WeaponUser.h"
 
 #include "WeaponDefinitionPDA.h"
+#include "ProjectileWeaponPDA.h"
+#include "WeaponBase.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -32,6 +34,7 @@ void UWeaponUser::BeginPlay()
 
 		}
 	}
+	else { if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + " UWeaponUser::BeginPlay() - OwningActorPtr is null"); } }
 
 	// Debug the setup automation
 	FString msg = FString::Printf(TEXT("[ %s ] UWeaponUser::BeginPlay() - bAutomatic setup is %s"), *this->GetName(), *LexToString(bAutomaticSetup));
@@ -57,29 +60,30 @@ void UWeaponUser::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 
 void UWeaponUser::Function_AutoSetCameraComponentPointer()
 {
-	// Check it
+	// Check if Owning Actor ptr is valid
 	if (OwningActorPtr)
 	{
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, "Owner: " + OwningActorPtr->GetName()); }
 		//UActorComponent* L_CamComp = OwningActor->GetComponentByClass<UCameraComponent>();
 		CameraComponentPtr = OwningActorPtr->GetComponentByClass<UCameraComponent>();
-		if (!CameraComponentPtr)
-		{
-			if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + "UWeaponUser::Function_SetCameraComponentPointer() - Can´t Get UCameraComponent of owner;"); }
-		}
-		else
-		{
-			if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Green, this->GetName() + "UWeaponUser::Function_SetCameraComponentPointer() - " + CameraComponentPtr->GetName()); }
-		}
+		
+		// [Warning] Debug  message if CameraComponent ptr is null
+		if (!CameraComponentPtr) { if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + "UWeaponUser::Function_SetCameraComponentPointer() - Can´t Get UCameraComponent of owner;"); } }
 	}
 	else
 	{
+		// [Warning] debug message if Owning Actor ptr is null
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + " UWeaponUser::Function_SetCameraComponentPointer() - OwningActorPtr is null;"); }
 		return;
 	}
 }
 
 void UWeaponUser::Function_ManualSetCameraComponentPointer(UCameraComponent* InPointer)
 {
+	if(InPointer == nullptr)
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_ManualSetCameraComponentPointer - InPointer is null"); }
+				return;
+	}
 	CameraComponentPtr = InPointer;
 }
 
@@ -92,20 +96,27 @@ void UWeaponUser::Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWea
 				return;
 	}
 
-	if(OwningActorPtr == nullptr) // Safety check
-	{
-				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - OwningActorPtr is null"); }
-				return;
-	}
-
 	if(InWeaponDef->WeaponSoftClassPtr == nullptr) // Safety check
 	{
 				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef->WeaponSoftClassPtr is null"); }
 				return;
 	}
 
+	// only if its a projectile weapon
+	//if(InWeaponDef->WeaponProjectileClassPtr == nullptr) // Safety check
+	//{
+	//			if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef->WeaponProjectileClassPtr is null"); }
+	//			return;
+	//}
+
+	if (OwningActorPtr == nullptr) // Safety check
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - OwningActorPtr is null"); }
+		return;
+	}
+
 	/// 2nd - Load and Spawn the weapon actor class
-	// Load the weapon class from the definition
+	// Load the weapon class from the definition ( if not already loaded )
 	TSubclassOf<AWeaponBase> L_WeaponClass = InWeaponDef->WeaponSoftClassPtr.LoadSynchronous();
 	
 	if(L_WeaponClass == nullptr) // Safety check
@@ -161,15 +172,42 @@ void UWeaponUser::Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneC
 	InWeaponRef->AttachToComponent(InSceneComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
+void UWeaponUser::Function_EquipWeapon(UWeaponDefinitionPDA* InWeaponDefPDA, AWeaponBase*& OutEquipedWeapon)
+{
+	AWeaponBase* L_OutWeapon;
+	this->Function_SpawnWeaponFromDefinition(InWeaponDefPDA, L_OutWeapon);
+	this->Function_AttachWeaponToHands(L_OutWeapon, PH_WeaponAttachPoint); // WIP -> Change to a placeholder component like in BPs
+	
+	// safety check
+	if(L_OutWeapon == nullptr) { if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_EquipWeapon - L_OutWeapon is null"); } return; }
+	
+	CurrentWeaponPtr = L_OutWeapon;
+
+	OutEquipedWeapon = L_OutWeapon;
+}
+
 void UWeaponUser::Function_UnequipCurrentWeapon()
 {
 }
 
-void UWeaponUser::Function_UseCurrentWeapon()
+void UWeaponUser::Function_UseCurrentWeapon(EInputphase InInputphase)
 {
-	if(CurrentWeaponPtr)
+	// Safety check
+	if(CurrentWeaponPtr == nullptr)
 	{
-		CurrentWeaponPtr->Function_StartUse();
+		// [Warning] debug message if CurrentWeaponPtr is null
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_UseCurrentWeapon - CurrentWeaponPtr is null"); }
+		return;
+	}
+	// Run a switch on the input phase
+	switch (InInputphase)
+	{
+	case EInputphase::IP_OnStartPress:
+		break;
+	case EInputphase::IP_OnBeingHeld:
+		break;
+	case EInputphase::IP_OnBeingReleased:
+		break;
 	}
 }
 

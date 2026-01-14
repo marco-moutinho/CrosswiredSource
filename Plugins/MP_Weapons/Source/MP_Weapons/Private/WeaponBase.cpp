@@ -52,25 +52,23 @@ void AWeaponBase::Function_SetCameraComponentPointer(UCameraComponent* InCameraC
 void AWeaponBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if(GEngine && bDebugMode) { GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::White, GetName() + " | AWeaponBase::Tick()"); }
 }
 
 void AWeaponBase::Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA)
 {
+	// Safety check
+	if (!WeaponDefinitionPDA)
+	{
+		// [Warning] Debug message if WeaponDefinitionPDA is null
+		if(GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - AWeaponBase::Function_InitializeFromDefinition - WeaponDefinitionPDA is null"); }
+		return;
+	}
 }
 
-void AWeaponBase::Function_StartUse()
+void AWeaponBase::Function_ExecuteWeaponAction()
 {
-	// Debug message to indicate method call
-	if (GEngine && bDebugMode) { GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::White, GetName() + " | AWeaponBase::Method_StartUse()"); }
-}
-
-void AWeaponBase::Function_StopUse()
-{
-}
-
-void AWeaponBase::Method_Using()
-{
+	/*
+	* To be overridden in child classes
+	*/
 }
 
