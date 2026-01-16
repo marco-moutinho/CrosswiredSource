@@ -18,6 +18,41 @@ enum class EInputphase : uint8
 	IP_OnBeingReleased UMETA(DisplayName = "Stop Press"),
 };
 
+/*
+* To Holster =	   A) Character still own it;	  B) Still loaded in memory;
+* Drop On Ground = A) Character no longer own it; B) Still loaded in memory;
+* Destroy =		   A) Character no longer own it; B) No longer loaded in memory;
+* Created on 15-Jan-2026
+*/
+UENUM(BlueprintType)
+enum class EWeaponUnquipMode : uint8
+{
+	EWUM_ToHolster		UMETA(DisplayName = "To Holster", ToolTip = "A) Character still own it; B) Still loaded in memory;"),
+	EWUM_DropOnGround	UMETA(DisplayName = "Drop On Ground", ToolTip = "A) Character no longer own it; B) Still loaded in memory;"),
+	EWUM_Destroy		UMETA(DisplayName = "Destroy", ToolTip = "A) Character no longer own it; B) No longer loaded in memory;"),
+};
+//EWUM_ToInventory	UMETA(DisplayName = "To Inventory"),
+
+USTRUCT(BlueprintType)
+struct FHolsterSlot
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadWrite)
+	bool bSlotUnlocked;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	TSoftObjectPtr<UWeaponDefinitionPDA> WeaponDefinition;
+
+	UPROPERTY(BlueprintReadWrite)
+	AWeaponBase* WeaponSpawnedPtr;
+
+	// Add someting that represents weapon customization that the player did? Skins, attachments, mods, etc.
+	// Should that be here?
+
+	// Where is the weapon Ammo info stored?
+};
+
 /**
  * Created on 12/12/2025
  */
@@ -43,7 +78,7 @@ public:
 protected:
 	// PLACEHOLDER STUFF:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Weapon User Properties ]|Placeholder")
-	USceneComponent* PH_WeaponAttachPoint;
+	TObjectPtr<USceneComponent> PH_WeaponAttachPoint;
 	// ...
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Weapon User Properties ]|Settings")
@@ -72,6 +107,12 @@ protected:
 
 	UPROPERTY()
 	AActor* OwningActorPtr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "[ Weapon User RTO vars ]|Holdster")
+	TObjectPtr<AWeaponBase> SecondaryWeaponPtr; // WIP NOT : Maybe this can be a ref to the previously equipped weapon so we can swap between two weapons quickly?
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "[ Weapon User RTO vars ]|Holdster")
+	TArray<FHolsterSlot> Holster;
 
 	// DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS | DEBUG DRAWS |
 	
@@ -145,39 +186,96 @@ protected:
 	void Function_ManualSetCameraComponentPointer(UCameraComponent* InPointer);
 
 public:
-	/*UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_TraceFromCamera(FHitResult& OutHitResult, FVector& OutTraceStart, FVector& OutTraceEnd);*/
-	/*
-	* Returns a spawned weapon actor based on the provided weapon definition;
-	*/
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 12-Jan-2026 / Last changed on 13-Jan-2026
-	virtual void Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr);
-
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 13-Jan-2026 / Last changed on 13-Jan-2026
-	virtual void Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent);
-	/*
-	* Includes:
-	* Spawning logic such as spawning from weapon definition
-	* equipping logic such as attaching to hands socket
-	* setting CurrentWeaponPtr, etc
-	*/
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]") // Added on 14-Jan-2026 / Last changed on 14-Jan-2026
-	virtual void Function_EquipWeapon(UWeaponDefinitionPDA* InWeaponDefPDA, AWeaponBase*& OutEquipedWeapon);
-
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_UnequipCurrentWeapon();
-
-	/*UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virutal void Function_SwitchWeapon();*/
-
-	// Added on 14-Jan-2026 / Last changed on 14-Jan-2026
-	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_UseCurrentWeapon(EInputphase InInputphase);
-
 	/*
 	* Performs a trace from player character aka pov
 	* Created on 17/12/2025
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
 	virtual void Function_TraceFromPov(FHitResult& OutHitResult);
+	
+	/*UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_TraceFromCamera(FHitResult& OutHitResult, FVector& OutTraceStart, FVector& OutTraceEnd);*/
+	
+	/*
+	* It handles the complete process of spawning and equipping/attaching a weapon from the holster at the provided slot index;
+	* It calls Function_SpawnWeaponFromHolster and Function_EquipWeapon internally;
+	* Added on 15-Jan-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_EquipWeaponAdvanced(int InHolsterSlotIndex, USceneComponent* InSceneComponent, AWeaponBase*& OutWeapon);
+
+	/*
+	* Spawns a weapon actor based on the weapon definition stored in the holster at the provided slot index;
+	* If the weapon at the provided slot index is already spawned, it will return the existing reference;
+	* It calls Function_SpawnWeaponFromDefinition internally (in case the weapon is not already spawned);
+	* Created on 15-Jan-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_SpawnWeaponFromHolster(int InSlotIndex, AWeaponBase*& OutWeaponPtr);
+
+	/*
+	* Returns a spawned weapon actor based on the provided weapon definition;
+	* Only call this via Blueprint if want more control over overall process;
+	* NOTE: Weapon will spawn at the (0,0,0) of the world by this function;
+	* Created on 12-Jan-2026 / Last changed on 15-Jan-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr);
+
+	/*
+	* Sets CurrentWeaponPtr to InWeaponRef;
+	* Calls Function_AttachWeaponToHands internally;
+	* Created on 15-Jan-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_EquipWeapon(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent);
+
+	/*
+	* It is Called by Function_EquipWeapon internally; There aren't many use cases to call this directly from Blueprint;
+	* It attaches to PH_WeaponAttachPoint by default;
+	* Created on 13-Jan-2026 / Last changed on 15-Jan-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent);
+
+	/*UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virutal void Function_SwitchWeapon();*/
+
+	// Added on 14-Jan-2026 / Last changed on 15-Jan-2026
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_UseCurrentWeapon(EInputphase InInputphase);
+
+	/*
+	* Created on 15-Jan-2026 / Last changed on
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_UnequipCurrentWeapon(EWeaponUnquipMode InUWMode);
+
+	/*
+	* Created on 15-Jan-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
+	virtual void Function_StoreCurrentWeaponInHolster();
 };
+
+
+/// GPT Notes --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// To do list:
+/// Separate “spawn” from “equip” completely []
+///      > Final mental model:
+///		      SpawnWeapon(...)
+///           EquipWeapon(...)
+///           UnequipWeapon(...)
+///	     > No function should:
+///		      Spawn AND equip
+///           Equip AND store
+///           pawn AND select
+
+/// [ Done ]
+/// Output references are not reset on failure; If the function early-returns, OutSpawnedWeaponPtr contains garbage.
+/// Same for: Function_SpawnWeaponFromHolster; Any similar pattern;
+/// 
+/// [ To Do ]
+/// PH_WeaponAttachPoint can silently be null []
+/// If this is not set in BP: Attach silently fails; Weapon appears at world origin or not at all;

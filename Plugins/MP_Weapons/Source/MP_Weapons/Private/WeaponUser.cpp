@@ -87,130 +87,6 @@ void UWeaponUser::Function_ManualSetCameraComponentPointer(UCameraComponent* InP
 	CameraComponentPtr = InPointer;
 }
 
-void UWeaponUser::Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr)
-{
-	/// 1st - Safety checks
-	if (InWeaponDef == nullptr) // Safety check
-	{
-				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef is null"); }
-				return;
-	}
-
-	if(InWeaponDef->WeaponSoftClassPtr == nullptr) // Safety check
-	{
-				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef->WeaponSoftClassPtr is null"); }
-				return;
-	}
-
-	// only if its a projectile weapon
-	//if(InWeaponDef->WeaponProjectileClassPtr == nullptr) // Safety check
-	//{
-	//			if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef->WeaponProjectileClassPtr is null"); }
-	//			return;
-	//}
-
-	if (OwningActorPtr == nullptr) // Safety check
-	{
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - OwningActorPtr is null"); }
-		return;
-	}
-
-	/// 2nd - Load and Spawn the weapon actor class
-	// Load the weapon class from the definition ( if not already loaded )
-	TSubclassOf<AWeaponBase> L_WeaponClass = InWeaponDef->WeaponSoftClassPtr.LoadSynchronous();
-	
-	if(L_WeaponClass == nullptr) // Safety check
-	{
-				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - Loaded Weapon Class is null"); }
-				return;
-	}
-
-	/// 3rd - Prepare Spawn Parameters
-	// Spawn Parameters
-	FActorSpawnParameters L_SpawnParams;
-	L_SpawnParams.Owner = OwningActorPtr;
-	L_SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	/// 4th - Spawn the weapon actor deferred
-	// Spawn the weapon actor
-	AWeaponBase* L_WeaponPtr = GetWorld()->SpawnActorDeferred<AWeaponBase>(L_WeaponClass, FTransform::Identity, OwningActorPtr, nullptr, L_SpawnParams.SpawnCollisionHandlingOverride);
-
-	if(L_WeaponPtr == nullptr) // Safety check
-	{
-				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - Spawned Weapon is null"); }
-				return;
-	}
-
-	/// 5th - Initialize the weapon from the definition
-	L_WeaponPtr->Function_InitializeFromDefinition(InWeaponDef);
-
-	/// 6th - Finish Spawning the weapon actor
-	UGameplayStatics::FinishSpawningActor(L_WeaponPtr, FTransform::Identity);
-
-	// Set Output pointer
-	OutSpawnedWeaponPtr = L_WeaponPtr;
-
-	/* Note about Spawning Actors Deferred vs Instant / Normal:
-	* SpawnActor (instant)			  : Constructor → BeginPlay → Your code
-	* SpawnActorDeferred (controlled) : Constructor → Your code → FinishSpawning → BeginPlay
-	*/
-}
-
-void UWeaponUser::Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent)
-{
-	// Safety checks
-	if (InWeaponRef == nullptr) {
-				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_AttachWeaponToHands - InWeaponRef is null"); }
-				return;
-	}
-	if (InSceneComponent == nullptr) {
-				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_AttachWeaponToHands - InSceneComponent is null"); }
-				return;
-	}
-
-	// Attach the weapon to the specified scene component
-	InWeaponRef->AttachToComponent(InSceneComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-}
-
-void UWeaponUser::Function_EquipWeapon(UWeaponDefinitionPDA* InWeaponDefPDA, AWeaponBase*& OutEquipedWeapon)
-{
-	AWeaponBase* L_OutWeapon;
-	this->Function_SpawnWeaponFromDefinition(InWeaponDefPDA, L_OutWeapon);
-	this->Function_AttachWeaponToHands(L_OutWeapon, PH_WeaponAttachPoint); // WIP -> Change to a placeholder component like in BPs
-	
-	// safety check
-	if(L_OutWeapon == nullptr) { if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_EquipWeapon - L_OutWeapon is null"); } return; }
-	
-	CurrentWeaponPtr = L_OutWeapon;
-
-	OutEquipedWeapon = L_OutWeapon;
-}
-
-void UWeaponUser::Function_UnequipCurrentWeapon()
-{
-}
-
-void UWeaponUser::Function_UseCurrentWeapon(EInputphase InInputphase)
-{
-	// Safety check
-	if(CurrentWeaponPtr == nullptr)
-	{
-		// [Warning] debug message if CurrentWeaponPtr is null
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_UseCurrentWeapon - CurrentWeaponPtr is null"); }
-		return;
-	}
-	// Run a switch on the input phase
-	switch (InInputphase)
-	{
-	case EInputphase::IP_OnStartPress:
-		break;
-	case EInputphase::IP_OnBeingHeld:
-		break;
-	case EInputphase::IP_OnBeingReleased:
-		break;
-	}
-}
-
 void UWeaponUser::Function_TraceFromPov(FHitResult& OutHitResult)
 {
 	if (CameraComponentPtr == nullptr || OwningActorPtr == nullptr)
@@ -231,11 +107,11 @@ void UWeaponUser::Function_TraceFromPov(FHitResult& OutHitResult)
 	bool bHit = GetWorld()->SweepSingleByProfile(TraceResult, L_TraceStart, L_TraceEnd, L_TraceQuat, PovTraceProfile.Name, L_Shape, L_QueryParams);
 	OutHitResult = TraceResult;
 
-	
+
 	if (bDebug_EnableTraceDraws)
 	{
 		// Debug Hit Point
-		if (bHit) 
+		if (bHit)
 		{
 			DrawDebugPoint(GetWorld(), TraceResult.ImpactPoint, Debug_HitPointSize, Debug_TraceHitColor, false, Debug_DrawTime, Debug_SphereStartDepth);
 		}
@@ -255,5 +131,251 @@ void UWeaponUser::Function_TraceFromPov(FHitResult& OutHitResult)
 		}
 		// TO DO: Calculate proper sweep interval based on trace distance and sphere radius
 	}
+}
+
+void UWeaponUser::Function_EquipWeaponAdvanced(int InHolsterSlotIndex, USceneComponent* InSceneComponent, AWeaponBase*& OutWeapon)
+{
+	// Spawn
+	AWeaponBase* L_WeaponPtr;
+	this->Function_SpawnWeaponFromHolster(InHolsterSlotIndex, L_WeaponPtr);
+	
+	if (L_WeaponPtr == nullptr)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_EquipWeaponAdvanced - L_WeaponPtr is null"); }
+		return;
+	}
+
+	//Equip
+	this->Function_EquipWeapon(L_WeaponPtr, InSceneComponent);
+
+	// Update Holster / aka Weapon Wheel "Data State"
+	Holster[InHolsterSlotIndex].WeaponSpawnedPtr = L_WeaponPtr;
+
+	OutWeapon = L_WeaponPtr;
+}
+
+void UWeaponUser::Function_SpawnWeaponFromHolster(int InSlotIndex, AWeaponBase*& OutWeaponPtr)
+{
+	// Safety check : for valid slot index
+	if(!Holster.IsValidIndex(InSlotIndex))
+	{
+		if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SetCurrentWeaponFromSlot - InSlotIndex is invalid"); }
+		OutWeaponPtr = nullptr;
+		return;
+	}
+
+	// Safety check : Check if the Definition was assigned eg. in editor
+	if(Holster[InSlotIndex].WeaponDefinition.IsNull())
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SetCurrentWeaponFromSlot - Weapon Definition at index is null, problably wasn't assign on Editor;"); }
+		OutWeaponPtr = nullptr;
+		return;
+	}
+	
+	// is it worth checking if the WeaponDefinition is already loaded? LoadSynchronous should handle that anyway...
+	// Get the weapon definition from the holdster based on the provided slot index
+	UWeaponDefinitionPDA* L_WeaponDef = Holster[InSlotIndex].WeaponDefinition.LoadSynchronous();
+	
+	// Safety check for valid weapon definition ( if the index returned a null ptr )
+	if (L_WeaponDef == nullptr)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SetCurrentWeaponFromSlot - Weapon Definition at index is null"); }
+		OutWeaponPtr = nullptr;
+		return;
+	}
+
+	// Check if the Weapon Actor is already spawned ( to avoid spawning multiple instances of the same weapon definition )
+	if (IsValid(Holster[InSlotIndex].WeaponSpawnedPtr))
+	{
+		OutWeaponPtr = Holster[InSlotIndex].WeaponSpawnedPtr;
+		return;
+	}
+
+	// Set the current weapon based on the weapon definition
+	AWeaponBase* L_OutWeapon;
+	this->Function_SpawnWeaponFromDefinition(L_WeaponDef, L_OutWeapon); // this is only needed if you want to spawn from definition, otherwise you can pass an already spawned weapon actor
+	
+	// safety check
+	if (L_OutWeapon == nullptr)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SetCurrentWeaponFromSlot - L_OutWeapon is null"); }
+		OutWeaponPtr = nullptr;
+		return;
+	}
+
+	OutWeaponPtr = L_OutWeapon;
+}
+
+void UWeaponUser::Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr)
+{
+	/// 1st - Safety checks
+	// Check if the Weapon Definition PDA is valid
+	if (InWeaponDef == nullptr) // Safety check
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef is null"); }
+				OutSpawnedWeaponPtr = nullptr;
+				return;
+	}
+
+	// Check if the WeaponSoftClassPtr is set in the definition
+	if(InWeaponDef->WeaponSoftClassPtr.IsNull()) // Safety check
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - InWeaponDef->WeaponSoftClassPtr is null"); }
+				OutSpawnedWeaponPtr = nullptr;
+				return;
+	}
+
+	// Check if the Owning Actor ptr is valid
+	if (OwningActorPtr == nullptr)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - OwningActorPtr is null"); }
+		OutSpawnedWeaponPtr = nullptr;
+		return;
+	}
+
+	/// 2nd - Load and Spawn the weapon actor class
+	// Load the weapon class from the definition ( if not already loaded )
+	TSubclassOf<AWeaponBase> L_WeaponClass = InWeaponDef->WeaponSoftClassPtr.LoadSynchronous();
+	
+	// Safety check : Check if the loaded weapon class is valid
+	if(L_WeaponClass == nullptr)
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - Loaded Weapon Class is null"); }
+				OutSpawnedWeaponPtr = nullptr;
+				return;
+	}
+
+	/// 3rd - Prepare Spawn Parameters
+	// Spawn Parameters
+	FActorSpawnParameters L_SpawnParams;
+	L_SpawnParams.Owner = OwningActorPtr;
+	L_SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	/// 4th - Spawn the weapon actor deferred
+	// Spawn the weapon actor
+	AWeaponBase* L_WeaponPtr = GetWorld()->SpawnActorDeferred<AWeaponBase>(L_WeaponClass, FTransform::Identity, OwningActorPtr, nullptr, L_SpawnParams.SpawnCollisionHandlingOverride);
+
+	// Safety check : Check if the spawned weapon actor is valid
+	if(L_WeaponPtr == nullptr)
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_SpawnWeaponFromDefinition - Spawned Weapon is null"); }
+				OutSpawnedWeaponPtr = nullptr;
+				return;
+	}
+
+	/// 5th - Initialize the weapon from the definition
+	L_WeaponPtr->Function_InitializeFromDefinition(InWeaponDef);
+
+	/// 6th - Finish Spawning the weapon actor
+	// This is the line that the weapon actor physicly spawns on the world
+	UGameplayStatics::FinishSpawningActor(L_WeaponPtr, FTransform::Identity);
+
+	// Set Output pointer
+	OutSpawnedWeaponPtr = L_WeaponPtr;
+
+	/*
+	* Note about Spawning Actors Deferred vs Instant / Normal:
+	* SpawnActor (instant)			  : Constructor → BeginPlay → Your code
+	* SpawnActorDeferred (controlled) : Constructor → Your code → FinishSpawning → BeginPlay
+	*/
+}
+
+void UWeaponUser::Function_EquipWeapon(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent)
+{
+	// Safety check
+	if (InWeaponRef == nullptr)
+	{
+				if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_EquipWeapon - InWeaponRef is null"); }
+				return;
+	}
+
+	// Set the current weapon pointer to the provided weapon reference
+	CurrentWeaponPtr = InWeaponRef;
+
+	// Attach the weapon to the hands
+	this->Function_AttachWeaponToHands(CurrentWeaponPtr, InSceneComponent);
+}
+
+void UWeaponUser::Function_AttachWeaponToHands(AWeaponBase* InWeaponRef, USceneComponent* InSceneComponent)
+{
+	// Safety checks
+	if (InWeaponRef == nullptr)
+	{
+		if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_AttachWeaponToHands - InWeaponRef is null"); }
+		return;
+	}
+	if (InSceneComponent == nullptr)
+	{
+		// Uncomment this to enforce providing a scene component
+		/*if(GEngine){ GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_AttachWeaponToHands - InSceneComponent is null"); }
+		return;*/
+
+		// If no scene component was provided, use the default/Placeholder weapon attach point
+		InSceneComponent = PH_WeaponAttachPoint;
+	}
+
+	// Attach the weapon to the specified scene component
+	InWeaponRef->AttachToComponent(InSceneComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+}
+
+void UWeaponUser::Function_UseCurrentWeapon(EInputphase InInputphase)
+{
+	// Safety check
+	if(CurrentWeaponPtr == nullptr)
+	{
+		// [Warning] debug message if CurrentWeaponPtr is null
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_UseCurrentWeapon - CurrentWeaponPtr is null"); }
+		return;
+	}
+
+	// Run a switch on the input phase
+	switch (InInputphase)
+	{
+	case EInputphase::IP_OnStartPress:
+		CurrentWeaponPtr->Function_ExecuteWeaponAction();
+		break;
+	case EInputphase::IP_OnBeingHeld:
+		break;
+	case EInputphase::IP_OnBeingReleased:
+		break;
+	}
+}
+
+void UWeaponUser::Function_UnequipCurrentWeapon(EWeaponUnquipMode InUWMode)
+{
+	// Safety Check : Check if CurrentWeaponPtr is valid
+	if (CurrentWeaponPtr == nullptr)
+	{
+		// [Warning] debug message if CurrentWeaponPtr is null
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_UnequipCurrentWeapon - CurrentWeaponPtr is null"); }
+		return;
+	}
+
+	switch (InUWMode)
+	{
+	case EWeaponUnquipMode::EWUM_ToHolster:
+		this->Function_StoreCurrentWeaponInHolster();
+		break;
+	case EWeaponUnquipMode::EWUM_DropOnGround:
+		break;
+	case EWeaponUnquipMode::EWUM_Destroy:
+		break;
+
+	default:
+		break;
+	}
+}
+
+void UWeaponUser::Function_StoreCurrentWeaponInHolster()
+{
+	// Safety Check : Check if CurrentWeaponPtr is valid
+	if (CurrentWeaponPtr == nullptr)
+	{
+		// [Warning] debug message if CurrentWeaponPtr is null
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - UWeaponUser::Function_StoreCurrentWeaponInHolster - CurrentWeaponPtr is null"); }
+		return;
+	}
+
+	// Whats the corresponding weapon slot on Holdster for the current weapon?
 }
 
