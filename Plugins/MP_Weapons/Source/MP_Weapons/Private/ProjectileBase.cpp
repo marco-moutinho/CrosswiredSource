@@ -44,17 +44,25 @@ void AProjectileBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	DrawDebugDirectionalArrow(
-		GetWorld(),
-		GetActorLocation(), // Start
-		GetActorLocation() + (GetActorForwardVector() * 50.0f), // End
-		100.0f, // ArrowSize
-		FColor::Blue,
-		false, // bPersistentLines
-		1, // LifeTime
-		0, // DepthPriority
-		3.0f // Thickness
-	);
+	//DrawDebugDirectionalArrow(
+	//	GetWorld(),
+	//	GetActorLocation(), // Start
+	//	GetActorLocation() + (GetActorForwardVector() * 50.0f), // End
+	//	100.0f, // ArrowSize
+	//	FColor::Blue,
+	//	false, // bPersistentLines
+	//	-1, // LifeTime
+	//	0, // DepthPriority
+	//	3.0f // Thickness
+	//);
+
+	//float SRadius = 5;
+	//int SSegments = 6;
+	//float SLifetime = -1;
+	//uint8 SDepth = 0;
+	//float SThickness = 1;
+
+	//DrawDebugSphere(GetWorld(), this->GetActorLocation(), SRadius, SSegments, FColor::Turquoise, false, SLifetime, SDepth, SThickness);
 
 }
 

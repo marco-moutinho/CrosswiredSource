@@ -38,12 +38,21 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Base Weapon Functions | Base Weapon Functions |  Base Weapon Functions |  Base Weapon Functions |  Base Weapon Functions |  Base Weapon Functions |  Base Weapon Functions | 
-	// Added on 14/12/2025
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Base")
+	virtual void Function_InitializeExternalPointers(APawn* InOwningPawn);
+
+	/*
+	* This function is called by WeaponUser on Function_SpawnWeaponFromDefinition(), cause the weapon actor is spawned via "SpawnActorDeferred",
+	* so it calls Function_InitializeFromDefinition/this before complete spawning(in world)
+	* Added on 14/12/2025
+	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Base")
 	virtual void Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA);
 
-	// Added on 14-Jan-2026
+	/*
+	* This Function is empty and it's meant to be overrit on subclasses
+	* Added on 14-Jan-2026
+	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Base")
 	virtual void Function_ExecuteWeaponAction();
 
@@ -63,4 +72,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Transient, Category = "[ External Pointers ]|RTO")
 	TObjectPtr<UCameraComponent> PlayerCameraCompPtr;
 
+	UPROPERTY(BlueprintReadWrite, Category = "[ External Pointers ]|RTO")
+	AActor* OwningActorPtr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "[ External Pointers ]|RTO")
+	APawn* OwningPawnPtr;
 };

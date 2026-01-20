@@ -34,6 +34,9 @@ public:
 	// Override base weapon functions...
 	virtual void Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA) override;
 
+	// override parent
+	virtual void Function_ExecuteWeaponAction() override;
+
 	// Projectile Weapon Specific Functions | Projectile Weapon Specific Functions | Projectile Weapon Specific Functions | Projectile Weapon Specific Functions |
 	
 	/* ------------------------------------------------------------------------------------------
@@ -45,12 +48,11 @@ public:
 	virtual void Function_ShootWeaponTrace();
 
 	/* 
-	* Set the projectile destination based on the trace hit result;
-	* ( public ) ( virtual )
-	* [ Added on 01/12/2025 ]
+	* 
+	* Added on 19-jan-2026
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
-	virtual void Method_SetProjectileDestinationPoint();
+	virtual void Method_SetProjectileDestinationPoint(FVector InTargetLocation);
 
 protected:
 
@@ -62,20 +64,52 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
 	virtual void Method_SpawnProjectile();
 
-
-	// Added on 14-Jan-2026
+	/*
+	* This function preloads and caches the projectile class when using a TSoftClassPtr.
+	* this functions it is only needed if i use TSoftClassPtr / a soft ref/ptr to the projectile class instead of a hard ref...
+	* call when the projectile type changes (equip / ammo change), so firing;
+	* since this is a thing that needs to be allways loaded/ready to shoot, even if it can be any subclass of it and the player can change it at any time;
+	* Created on 16 - Jan - 2026
+	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
-	virtual void Function_LoadProjectileClass();
+	virtual void Function_LoadProjectileClass(TSoftClassPtr<AProjectileBase> InSoftProjectileClassPtr, TSubclassOf<AProjectileBase>& OutProjectileClassRef);
 
 	// Added on 14-Jan-2026
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
 	virtual void Function_InitializeProjectileSubClassData();
 
+	/*
+	* Sets the ProjectileClassRef
+	* Added on 16-Jan-2027
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
+	virtual void Function_SetProjectileClass(TSubclassOf<AProjectileBase> InProjectileClass);
+
 	// Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties |
 protected:
+	/// [ Note on TSubclassOf vs TSoftClassPtr ]
+	/// > Use TSubclassOf<> when:
+	///		The class is hard-referenced
+	///		Unreal loads it at startup
+	///		Always in memory
+	/// What happens: The class is hard-referenced; Unreal loads it at startup; Always in memory;
+	/// Pros: Simple; No loading code; Safe to spawn anytime;
+	/// Cons: Increases load time; Increases memory usage; Bad for large content libraries
+	/// 
+	/// > Use TSoftClassPtr<> when:
+	///		The class is optional or data-driven
+	///		Designers select it in a DataAsset / PDA
+	///		You want lazy loading
+	///		Typical for weapons, spells, projectiles
+	/// What happens: Only the asset path is stored; Class is NOT loaded; Loaded only when you ask for it;
+	/// Pros: Best for modular content; Faster startup; Lower memory usage; Scales well;
+	/// Cons: Requires LoadSynchronous(); Slightly more code;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ Projectile Subclass Properties ]")
-	TSubclassOf<AProjectileBase> _ProjectileClass;
+	TSubclassOf<AProjectileBase> _ProjectileClassRef;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ Projectile Subclass Properties ]")
+	TSoftClassPtr<AProjectileBase> ProjectileClassPtr;
 
 	// Trace range distance ( protected )
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category = "[ Projectile Subclass Properties ]")

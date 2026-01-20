@@ -266,7 +266,18 @@ void UWeaponUser::Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWea
 	/// 5th - Initialize the weapon from the definition
 	L_WeaponPtr->Function_InitializeFromDefinition(InWeaponDef);
 
-	/// 6th - Finish Spawning the weapon actor
+	/// 6h - Initialize external ptrs
+	if (OwningActorPtr->IsA(APawn::StaticClass())) {
+		OwningPawnPtr = CastChecked<APawn>(GetOwner());
+	}
+	else
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + "UWeaponUser::Function_SpawnWeaponFromDefinition - OwningActor is not a Pawn or subclass of it; !"); }
+		return;
+	}
+	L_WeaponPtr->Function_InitializeExternalPointers(OwningPawnPtr);
+
+	/// 7th - Finish Spawning the weapon actor
 	// This is the line that the weapon actor physicly spawns on the world
 	UGameplayStatics::FinishSpawningActor(L_WeaponPtr, FTransform::Identity);
 

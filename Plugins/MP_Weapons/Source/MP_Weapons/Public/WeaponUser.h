@@ -107,6 +107,8 @@ protected:
 
 	UPROPERTY()
 	AActor* OwningActorPtr;
+	UPROPERTY()
+	APawn* OwningPawnPtr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "[ Weapon User RTO vars ]|Holdster")
 	TObjectPtr<AWeaponBase> SecondaryWeaponPtr; // WIP NOT : Maybe this can be a ref to the previously equipped weapon so we can swap between two weapons quickly?

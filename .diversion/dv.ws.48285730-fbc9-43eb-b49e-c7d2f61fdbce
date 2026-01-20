@@ -1,0 +1,14 @@
+{
+  "WorkspaceID": "dv.ws.48285730-fbc9-43eb-b49e-c7d2f61fdbce",
+  "RepoID": "dv.repo.136cb7b4-7421-4801-8dbc-a07fc046d3b9",
+  "Path": "C:\\UE5Projects\\Crosswired",
+  "AccountID": "Google_106433459404876006135",
+  "BranchID": "dv.branch.1",
+  "BranchName": "main",
+  "CommitID": "dv.commit.4",
+  "Paused": false,
+  "ShouldDownload": false,
+  "RepoName": "Crosswired",
+  "ReadOnly": false,
+  "DigestMethod": "sha1"
+}

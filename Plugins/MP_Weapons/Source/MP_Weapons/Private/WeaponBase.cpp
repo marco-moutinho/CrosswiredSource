@@ -30,8 +30,13 @@ void AWeaponBase::BeginPlay()
 	if(GEngine && bDebugMode)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, GetName() + " | AWeaponBase::BeginPlay()");
-	}
-	
+	}  
+}
+
+void AWeaponBase::Function_InitializeExternalPointers(APawn* InOwningPawn)
+{
+	if (InOwningPawn == nullptr) { if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - AWeaponBase::Function_InitializeExternalPointers - InOwningPawn is nullptr"); } }
+	OwningPawnPtr = InOwningPawn;
 }
 
 void AWeaponBase::Method_InitializeWeaponVisuals()
