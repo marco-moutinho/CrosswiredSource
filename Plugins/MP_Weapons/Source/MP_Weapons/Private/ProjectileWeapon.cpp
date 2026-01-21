@@ -8,6 +8,8 @@
 #include "WeaponDefinitionPDA.h"
 
 #include "GameFramework/Character.h"
+#include "ObjectPoolComponent.h"
+//#include "IPoolableActor.h"
 
 AProjectileWeapon::AProjectileWeapon()
 {
@@ -21,6 +23,10 @@ AProjectileWeapon::AProjectileWeapon()
 
 	//Set tick group
 	PrimaryActorTick.TickGroup = TG_LastDemotable;
+
+	// Initialize Pool Component
+	PoolComponentPtr = CreateDefaultSubobject<UObjectPoolComponent>(TEXT("ProjectilePool AComponent"));
+
 }
 
 void AProjectileWeapon::BeginPlay()
@@ -116,9 +122,13 @@ void AProjectileWeapon::Function_InitializeFromDefinition(UWeaponDefinitionPDA* 
 	//_ProjectileClass = L_ProjectileWeaponDefPDA->ProjectileClassPtr.LoadSynchronous();
 }
 
+void AProjectileWeapon::FunctionInitializeProjectilePool()
+{
+}
+
 void AProjectileWeapon::Function_ExecuteWeaponAction()
 {
-	Method_SpawnProjectile();
+	//Method_SpawnProjectile();
 }
 
 // WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP |
@@ -219,6 +229,9 @@ void AProjectileWeapon::Method_SpawnProjectile()
 
 	// Spawn the projectile actor
 	AProjectileBase* SpawnedProjectile = Lc_World->SpawnActor<AProjectileBase>(_ProjectileClassRef, SpawnLocation, SpawnRotation, SpawnParams);
+
+	// Add it to the pool
+	PoolComponentPtr->Function_AddToPool(SpawnedProjectile, true);
 
 	if (bDebugMode)
 	{
@@ -321,4 +334,13 @@ void AProjectileWeapon::Function_SetProjectileClass(TSubclassOf<AProjectileBase>
 	_ProjectileClassRef = InProjectileClass;
 
 	// TO DO : Problably good idea do give some feedback to the player, maybe through the function/class that calls this one
+}
+
+void AProjectileWeapon::Function_Shoot()
+{
+	bool bWasRetrived;
+	PoolComponentPtr->Function_RetrieveFromPool(bWasRetrived);
+	if (!bWasRetrived) {
+		this->Method_SpawnProjectile(); 
+	}
 }

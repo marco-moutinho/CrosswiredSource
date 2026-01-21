@@ -9,6 +9,7 @@
 
 #include "ProjectileWeapon.generated.h"
 
+class UObjectPoolComponent;
 /**
  * Created on : 29/11/2025
  */
@@ -33,6 +34,9 @@ public:
 
 	// Override base weapon functions...
 	virtual void Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void FunctionInitializeProjectilePool();
 
 	// override parent
 	virtual void Function_ExecuteWeaponAction() override;
@@ -84,6 +88,9 @@ protected:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
 	virtual void Function_SetProjectileClass(TSubclassOf<AProjectileBase> InProjectileClass);
+
+	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
+	virtual void Function_Shoot();
 
 	// Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties |
 protected:
@@ -146,4 +153,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "[ RTO ]|Projectile Subclass")
 	FVector _ProjectileDestinationPoint;
 	
+	UPROPERTY(BlueprintReadWrite, Category = "[ Weapon Comp ]")
+	TObjectPtr<UObjectPoolComponent> PoolComponentPtr;
 };

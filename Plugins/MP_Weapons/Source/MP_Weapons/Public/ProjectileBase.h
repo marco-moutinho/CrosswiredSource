@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "IPoolableActor.h"
 
 #include "ProjectileBase.generated.h"
 
@@ -14,7 +15,7 @@
  * 
  */
 UCLASS()
-class MP_WEAPONS_API AProjectileBase : public AActor
+class MP_WEAPONS_API AProjectileBase : public AActor, public IIPoolableActor
 {
 	GENERATED_BODY()
 	
@@ -50,5 +51,15 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "[ Projectile Class ]|Components")
 	UProjectileMovementComponent* _ProjectileMovementComponent;
 
+	UFUNCTION()
+	void Function_ResetProjectile(FTransform InTransform);
+
+
+public:
+
+	// Inherited via IIPoolableActor
+	void IFunction_ActivateActor() override;
+
+	void IFunction_DeactivateActor() override;
 
 };

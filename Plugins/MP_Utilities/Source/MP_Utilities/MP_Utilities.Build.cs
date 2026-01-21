@@ -2,23 +2,25 @@
 
 using UnrealBuildTool;
 
-public class MP_Weapons : ModuleRules
+public class MP_Utilities : ModuleRules
 {
-	public MP_Weapons(ReadOnlyTargetRules Target) : base(Target)
+	public MP_Utilities(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
-			}
+				"MP_Utilities/Public",
+            }
 			);
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
-			}
+				"MP_Utilities/Private",
+            }
 			);
 			
 		
@@ -27,10 +29,7 @@ public class MP_Weapons : ModuleRules
 			{
 				"Core",
 				// ... add other public dependencies that you statically link with here ...
-				"UMG",
-                "EnhancedInput",
-				"MP_Utilities",
-            }
+			}
 			);
 			
 		

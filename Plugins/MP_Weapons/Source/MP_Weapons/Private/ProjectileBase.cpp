@@ -66,3 +66,42 @@ void AProjectileBase::Tick(float DeltaTime)
 
 }
 
+void AProjectileBase::Function_ResetProjectile(FTransform InTransform)
+{
+	// Actor state
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+	SetActorTickEnabled(true);
+
+	bool bShouldSweep = false;
+	SetActorTransform(InTransform, bShouldSweep, nullptr, ETeleportType::TeleportPhysics); // is this on the correct line / order of execution
+
+	// projectile specifics
+
+	// HARD RESET
+	_ProjectileMovementComponent->StopMovementImmediately();
+	_ProjectileMovementComponent->Deactivate();
+	_ProjectileMovementComponent->ResetInterpolation();
+
+	// Reset internal state / Clear velocity explicitly
+	_ProjectileMovementComponent->Velocity = FVector::ZeroVector;
+
+	// Reactivate
+	_ProjectileMovementComponent->Activate(true);
+
+	// Relaunch (WORLD SPACE — important)
+	const FVector LaunchVelocity = GetActorForwardVector() * _ProjectileMovementComponent->InitialSpeed;
+	_ProjectileMovementComponent->Velocity = LaunchVelocity;
+	_ProjectileMovementComponent->UpdateComponentVelocity();
+}
+
+void AProjectileBase::IFunction_ActivateActor()
+{
+}
+
+void AProjectileBase::IFunction_DeactivateActor()
+{
+	_ProjectileMovementComponent->StopMovementImmediately();
+	_ProjectileMovementComponent->Deactivate();
+}
+
