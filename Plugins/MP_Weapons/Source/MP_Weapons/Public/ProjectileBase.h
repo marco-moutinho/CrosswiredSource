@@ -37,6 +37,13 @@ protected:
 	*/
 	virtual void Method_InitializeProjectileComponent();
 
+	/*
+	* This function is binded to 
+	* Added on 21-Jan-2026
+	*/
+	UFUNCTION()
+	virtual void Function_OnProjectileHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -51,8 +58,12 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "[ Projectile Class ]|Components")
 	UProjectileMovementComponent* _ProjectileMovementComponent;
 
+	// set this when reset projectile, just to not add input parameters to the interface
+	UPROPERTY(BlueprintReadWrite)
+	FTransform _ResetTransform;
+
 	UFUNCTION()
-	void Function_ResetProjectile(FTransform InTransform);
+	void Function_ResetProjectile();
 
 
 public:
@@ -61,5 +72,9 @@ public:
 	void IFunction_ActivateActor() override;
 
 	void IFunction_DeactivateActor() override;
+
+
+	// Inherited via IIPoolableActor
+	void IFunction_ResetActorWithTransform(FTransform InTransform) override;
 
 };

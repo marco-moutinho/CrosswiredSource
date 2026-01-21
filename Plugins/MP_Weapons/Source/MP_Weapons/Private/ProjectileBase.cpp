@@ -18,6 +18,16 @@ AProjectileBase::AProjectileBase()
 void AProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// BIND my function to OnActorHit
+	// AddDynamic does not seems to appear on IntelliSense or it hides it;
+	// Note that to Bind a functions his InputParameters have to be the exact same;
+	OnActorHit.AddDynamic(this, &AProjectileBase::Function_OnProjectileHit);
+
+	/*
+	* for more complex similar event use
+	* CollisionComp->OnComponentHit.AddDynamic
+	*/
 	
 }
 
@@ -37,6 +47,10 @@ void AProjectileBase::Method_InitializeProjectileComponent()
 	
 	// set the projectile movement component properties
 	_ProjectileMovementComponent->UpdatedComponent = RootComponent;
+}
+
+void AProjectileBase::Function_OnProjectileHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit)
+{
 }
 
 // Called every frame
@@ -66,7 +80,7 @@ void AProjectileBase::Tick(float DeltaTime)
 
 }
 
-void AProjectileBase::Function_ResetProjectile(FTransform InTransform)
+void AProjectileBase::Function_ResetProjectile()
 {
 	// Actor state
 	SetActorHiddenInGame(false);
@@ -74,7 +88,7 @@ void AProjectileBase::Function_ResetProjectile(FTransform InTransform)
 	SetActorTickEnabled(true);
 
 	bool bShouldSweep = false;
-	SetActorTransform(InTransform, bShouldSweep, nullptr, ETeleportType::TeleportPhysics); // is this on the correct line / order of execution
+	SetActorTransform(_ResetTransform, bShouldSweep, nullptr, ETeleportType::TeleportPhysics); // is this on the correct line / order of execution
 
 	// projectile specifics
 
@@ -97,11 +111,18 @@ void AProjectileBase::Function_ResetProjectile(FTransform InTransform)
 
 void AProjectileBase::IFunction_ActivateActor()
 {
+	Function_ResetProjectile();
 }
 
 void AProjectileBase::IFunction_DeactivateActor()
 {
 	_ProjectileMovementComponent->StopMovementImmediately();
 	_ProjectileMovementComponent->Deactivate();
+}
+
+void AProjectileBase::IFunction_ResetActorWithTransform(FTransform InTransform)
+{
+	this->_ResetTransform = InTransform;
+	this->IFunction_ActivateActor();
 }
 

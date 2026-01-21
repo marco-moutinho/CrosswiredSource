@@ -60,10 +60,13 @@ public:
 
 protected:
 
+	UFUNCTION()
+	virtual void Function_SetProjectileSpawnTransform(FTransform& OutTransform);
+
 	/*
 	* Spawns the projectile actor having in account the traces results;
-	* ( protected ) ( virtual )
-	* [ Added on 01/12/2025 ]
+	* this calls internally void UObjectPoolComponent::Function_AddToPool();
+	* Added on 01/12/2025 | Last change on 21-Jan-2026
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
 	virtual void Method_SpawnProjectile();
@@ -89,10 +92,16 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
 	virtual void Function_SetProjectileClass(TSubclassOf<AProjectileBase> InProjectileClass);
 
+	/*
+	* Full execution logic flow
+	* 1 - Function_SetProjectileSpawnTransform() to set projectile "spawn" transform;
+	* 2 - Access to the ObjectPoolComponent to call Function_RetrieveFromPoolWithTransform();
+	* Added on 21-Jan-2026
+	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon Functions ]|Projectile Subclass")
 	virtual void Function_Shoot();
 
-	// Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties | Projectile Weapon Properties |
+	// Projectile Weapon Properties
 protected:
 	/// [ Note on TSubclassOf vs TSoftClassPtr ]
 	/// > Use TSubclassOf<> when:

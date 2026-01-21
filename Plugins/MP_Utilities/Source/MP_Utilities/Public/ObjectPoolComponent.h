@@ -61,9 +61,18 @@ public:
 
 	/*
 	* "Activates" a actor from the pool if possible; If not then spawn a new actor and add it to the pool;
-	* This is also called internaly on AProjectileWeapon::Function_Shoot();
 	* Created on 21-Jan-2026
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Pool Component ]")
 	virtual void Function_RetrieveFromPool(bool& OutSuccessfullyRetrived);
+
+
+	/*
+	* "Activates" a actor from the pool if possible; If not then spawn a new actor and add it to the pool;
+	* This is also called internaly on AProjectileWeapon::Function_Shoot();
+	* Calls IFunction_ResetActorWithTransform internally;
+	* Created on 21-Jan-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ Pool Component ]")
+	virtual void Function_RetrieveFromPoolWithTransform(FTransform InTransform, bool& OutSuccessfullyRetrived);
 };

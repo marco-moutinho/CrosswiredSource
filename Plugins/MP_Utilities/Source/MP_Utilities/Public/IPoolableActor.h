@@ -14,7 +14,7 @@ class UIPoolableActor : public UInterface
 };
 
 /**
- * 
+ * Created on 21-Jan-2026
  */
 class MP_UTILITIES_API IIPoolableActor
 {
@@ -22,11 +22,14 @@ class MP_UTILITIES_API IIPoolableActor
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
+	// added on 21-Jan-2026
+	virtual void IFunction_ActivateActor() = 0; 
 	/*
-	* SetActorHiddenInGame(false);
-	* SetActorEnableCollision(true);
-	* SetActorTickEnabled(true);
+	* it's supposed to call IFunction_ActivateActor() internally / on his cpp implementation
+	* // added on 21-Jan-2026
 	*/
-	virtual void IFunction_ActivateActor() = 0;
-	virtual void IFunction_DeactivateActor() = 0;
+	virtual void IFunction_ResetActorWithTransform(const FTransform InTransform) = 0; 
+	// added on 21-Jan-2026
+	virtual void IFunction_DeactivateActor() = 0; 
+
 };

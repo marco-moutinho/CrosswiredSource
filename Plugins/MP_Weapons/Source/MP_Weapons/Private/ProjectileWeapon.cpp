@@ -128,7 +128,9 @@ void AProjectileWeapon::FunctionInitializeProjectilePool()
 
 void AProjectileWeapon::Function_ExecuteWeaponAction()
 {
-	//Method_SpawnProjectile();
+	//Method_SpawnProjectile(); - DEPRECATED
+
+	Function_Shoot();
 }
 
 // WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP |
@@ -176,6 +178,17 @@ void AProjectileWeapon::Function_ShootWeaponTrace()
 
 void AProjectileWeapon::Method_SetProjectileDestinationPoint(FVector InTargetLocation)
 {
+}
+
+void AProjectileWeapon::Function_SetProjectileSpawnTransform(FTransform& OutTransform)
+{
+	FVector SpawnLocation = _TraceStartPoint;
+	FQuat SpawnRotator = OwningPawnPtr->GetController()->GetControlRotation().Quaternion();
+
+	// Return
+	FTransform LcTransform;
+	LcTransform.SetLocation(SpawnLocation);
+	LcTransform.SetRotation(SpawnRotator);
 }
 
 void AProjectileWeapon::Method_SpawnProjectile()
@@ -339,8 +352,12 @@ void AProjectileWeapon::Function_SetProjectileClass(TSubclassOf<AProjectileBase>
 void AProjectileWeapon::Function_Shoot()
 {
 	bool bWasRetrived;
-	PoolComponentPtr->Function_RetrieveFromPool(bWasRetrived);
-	if (!bWasRetrived) {
-		this->Method_SpawnProjectile(); 
+	FTransform LcTranform;
+	Function_SetProjectileSpawnTransform(LcTranform);
+	PoolComponentPtr->Function_RetrieveFromPoolWithTransform(LcTranform, bWasRetrived);
+	if (!bWasRetrived)
+	{
+		this->Method_SpawnProjectile();
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, "AProjectileWeapon::Function_Shoot() - Projectile has been TRULLY SPAWNED"); }
 	}
 }
