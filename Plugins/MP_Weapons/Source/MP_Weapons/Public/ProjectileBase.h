@@ -6,7 +6,8 @@
 #include "GameFramework/Actor.h"
 
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "IPoolableActor.h"
+#include "IPoolableActor.h" // interface that pool calls on actor ( to : activate & deactivate object )
+#include "IPoolable.h" // interface that this calls on/to pool
 
 #include "ProjectileBase.generated.h"
 
@@ -42,9 +43,10 @@ protected:
 	* Added on 21-Jan-2026
 	*/
 	UFUNCTION()
-	virtual void Function_OnProjectileHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
+	virtual void Function_OnProjectileHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit); // should i add "override"? the GPT said so...
 
 public:	
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -65,16 +67,26 @@ protected:
 	UFUNCTION()
 	void Function_ResetProjectile();
 
+	// this function calls the pool interface function
+	//UFUNCTION() // do i need to write this? what i gain (and lost) by writing it?
+	virtual void Function_ReturnToPool(); // added on 26-Jan-2026
+
 
 public:
+	// This needs to be set on the actor spawn
+	UPROPERTY() // <- do i need to write this? what i gain (and lost) by writing it?
+	TScriptInterface<IIPoolable> OwnerPoolInterfacePtr;
+
+	UPROPERTY()
+	UActorComponent* OwnerPoolPtr; // this must be set by the weapon, cause on my system the pool is a ActorComponent that is attached to the weapon Actor
 
 	// Inherited via IIPoolableActor
-	void IFunction_ActivateActor() override;
+	virtual void IFunction_ActivateActor_Implementation() override;
 
-	void IFunction_DeactivateActor() override;
+	virtual void IFunction_DeactivateActor_Implementation() override;
 
 
 	// Inherited via IIPoolableActor
-	void IFunction_ResetActorWithTransform(FTransform InTransform) override;
+	virtual void IFunction_ResetActorWithTransform_Implementation(FTransform InTransform) override;
 
 };

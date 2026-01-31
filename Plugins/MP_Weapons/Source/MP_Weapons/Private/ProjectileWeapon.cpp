@@ -189,6 +189,8 @@ void AProjectileWeapon::Function_SetProjectileSpawnTransform(FTransform& OutTran
 	FTransform LcTransform;
 	LcTransform.SetLocation(SpawnLocation);
 	LcTransform.SetRotation(SpawnRotator);
+
+	OutTransform = LcTransform;
 }
 
 void AProjectileWeapon::Method_SpawnProjectile()
@@ -214,7 +216,7 @@ void AProjectileWeapon::Method_SpawnProjectile()
 	// Set up Spawn
 
 	// Set spawn position
-	FVector SpawnLocation = _TraceStartPoint;
+	FVector LcSpawnLocation = _TraceStartPoint;
 	
 	// Safety check
 	if (OwningPawnPtr == nullptr) {
@@ -230,29 +232,53 @@ void AProjectileWeapon::Method_SpawnProjectile()
 
 
 	// Set Spawn Rotation
-	FRotator SpawnRotation;
+	FRotator LcSpawnRotation;
 	// Match as player view/Aim/POV
-	SpawnRotation = OwningPawnPtr->GetController()->GetControlRotation(); // is this to heavy processing power to call on each time a projectile its fired/spawn?
+	LcSpawnRotation = OwningPawnPtr->GetController()->GetControlRotation(); // is this to heavy processing power to call on each time a projectile its fired/spawn?
+
+	// Create FTransform to spawn
+	FTransform LcSpawnTransform = FTransform(LcSpawnRotation, LcSpawnLocation);
 	
 	// Setup spawn parameters
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.Instigator = GetInstigator();
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	FActorSpawnParameters LcSpawnParams;
+	LcSpawnParams.Owner = this;
+	LcSpawnParams.Instigator = GetInstigator();
+	LcSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	// Spawn the projectile actor
-	AProjectileBase* SpawnedProjectile = Lc_World->SpawnActor<AProjectileBase>(_ProjectileClassRef, SpawnLocation, SpawnRotation, SpawnParams);
+	// AProjectileBase* SpawnedProjectile = Lc_World->SpawnActor<AProjectileBase>(_ProjectileClassRef, SpawnLocation, SpawnRotation, SpawnParams);
+
+	// SpawnDeferred so I can set all needed parameters/var values before the object exists in world
+	AProjectileBase* LcSpawnedProjectilePtr = Lc_World->SpawnActorDeferred<AProjectileBase>(_ProjectileClassRef, LcSpawnTransform, LcSpawnParams.Owner, LcSpawnParams.Instigator, LcSpawnParams.SpawnCollisionHandlingOverride);
+
+	// safety check : if Spawn has worked
+	if (!LcSpawnedProjectilePtr) {
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - void AProjectileWeapon::Method_SpawnProjectile() - LcSpawnedProjectilePtr is a null ptr !"); }
+		return;
+	}
 
 	// Add it to the pool
-	PoolComponentPtr->Function_AddToPool(SpawnedProjectile, true);
+		PoolComponentPtr->Function_AddToPool(LcSpawnedProjectilePtr, true);
+
+	// Set IPoolable ref ptr on the spawned projectile... but how?
+	LcSpawnedProjectilePtr->OwnerPoolInterfacePtr = PoolComponentPtr; /// DEPRECATED -  clean later
+	LcSpawnedProjectilePtr->OwnerPoolPtr = PoolComponentPtr;
+
+	// finish spawn / add to world
+	LcSpawnedProjectilePtr->FinishSpawning(LcSpawnTransform);
+
+	/*
+	* Correct lifecycle
+	* Constructor > SpawnActorDeferred > Set OwnerPool, Set initial transform, Configure movement > FinishSpawning > BeginPlay > Simulation starts
+	*/
 
 	if (bDebugMode)
 	{
 		// Debug Arrow to visualize the projectile spawn direction
 		DrawDebugDirectionalArrow(
 			GetWorld(),
-			SpawnLocation, // Start
-			SpawnLocation + (SpawnRotation.Vector() * 100), // End location
+			LcSpawnLocation, // Start
+			LcSpawnLocation + (LcSpawnRotation.Vector() * 100), // End location
 			100.0f, // ArrowSize
 			FColor::Blue,
 			false, // bPersistentLines
@@ -264,7 +290,7 @@ void AProjectileWeapon::Method_SpawnProjectile()
 		// Debug a sphere that represents the spawn area/location
 		DrawDebugSphere(
 			GetWorld(),
-			SpawnLocation,
+			LcSpawnLocation,
 			3, //radius
 			6, // segments
 			FColor::Black,
@@ -355,7 +381,7 @@ void AProjectileWeapon::Function_Shoot()
 	FTransform LcTranform;
 	Function_SetProjectileSpawnTransform(LcTranform);
 	PoolComponentPtr->Function_RetrieveFromPoolWithTransform(LcTranform, bWasRetrived);
-	if (!bWasRetrived)
+	if (bWasRetrived == false)
 	{
 		this->Method_SpawnProjectile();
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, "AProjectileWeapon::Function_Shoot() - Projectile has been TRULLY SPAWNED"); }

@@ -51,6 +51,8 @@ void AProjectileBase::Method_InitializeProjectileComponent()
 
 void AProjectileBase::Function_OnProjectileHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit)
 {
+	// return to pool
+	this->Function_ReturnToPool();
 }
 
 // Called every frame
@@ -80,7 +82,7 @@ void AProjectileBase::Tick(float DeltaTime)
 
 }
 
-void AProjectileBase::Function_ResetProjectile()
+void AProjectileBase::Function_ResetProjectile() // this function is called by the Pool that is called by the weapon ( so projectile hit : return to pool() > Weapon call Retrieve from pool and if so call this )
 {
 	// Actor state
 	SetActorHiddenInGame(false);
@@ -88,7 +90,7 @@ void AProjectileBase::Function_ResetProjectile()
 	SetActorTickEnabled(true);
 
 	bool bShouldSweep = false;
-	SetActorTransform(_ResetTransform, bShouldSweep, nullptr, ETeleportType::TeleportPhysics); // is this on the correct line / order of execution
+	SetActorTransform(_ResetTransform, bShouldSweep, nullptr, ETeleportType::TeleportPhysics); // _resetTransform should be set by the Weapon!?
 
 	// projectile specifics
 
@@ -109,20 +111,56 @@ void AProjectileBase::Function_ResetProjectile()
 	_ProjectileMovementComponent->UpdateComponentVelocity();
 }
 
-void AProjectileBase::IFunction_ActivateActor()
+void AProjectileBase::Function_ReturnToPool()
 {
+	// feedback to check if this is called
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 3, FColor::White, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() Called!"); }
+	// safety check for valid pool pointer
+	if (OwnerPoolPtr == nullptr) {
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() - OwnerPoolPtr is a nullptr!"); }
+		return;
+	}
+
+	bool LcWasSuccefully;
+
+	if (OwnerPoolPtr->GetClass()->ImplementsInterface(UIPoolable::StaticClass())) {
+		IIPoolable::Execute_IFunction_ReturnToPool(OwnerPoolPtr, this, LcWasSuccefully);
+	}
+
+	//if (LcWasSuccefully) {
+	//	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() was succefully!"); }
+	//}
+	else {
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() - LcWasSuccefully = false"); }
+	}
+}
+
+void AProjectileBase::IFunction_ActivateActor_Implementation()
+{
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 3, FColor::White, this->GetName() + " - void AProjectileBase::IFunction_ActivateActor_Implementation()"); }
 	Function_ResetProjectile();
 }
 
-void AProjectileBase::IFunction_DeactivateActor()
+void AProjectileBase::IFunction_DeactivateActor_Implementation()
 {
+	// Actor state
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+
+	// projectile movement component
 	_ProjectileMovementComponent->StopMovementImmediately();
 	_ProjectileMovementComponent->Deactivate();
+
+	// add some logic to put this into the pool (waiting state)... for what i got so far i need to set his respective "slot" isActive parameter set to false...
+	// so basicly i think i need to pass to this a reference of his slot index. or there are any other way? a way of the pool handle it without require that the object knows his slot?
+	// maybe a way is to this object have a reference to the pool and call a interface or function..
 }
 
-void AProjectileBase::IFunction_ResetActorWithTransform(FTransform InTransform)
+void AProjectileBase::IFunction_ResetActorWithTransform_Implementation(FTransform InTransform)
 {
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, this->GetName() + " - void AProjectileBase::IFunction_ResetActorWithTransform_Implementation()"); }
 	this->_ResetTransform = InTransform;
-	this->IFunction_ActivateActor();
+	IIPoolableActor::Execute_IFunction_ActivateActor(this);
 }
 

@@ -4,7 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+
+#include "IPoolable.h"
+
 #include "ObjectPoolComponent.generated.h"
+
+/*
+* added on 27-Jan-2026
+*/
+UENUM(BlueprintType)
+enum class EPoolObjectState : uint8 { PsAwake, PsSleep };
 
 USTRUCT(BlueprintType)
 struct FObjectPoolSlot
@@ -15,14 +24,18 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<AActor> ActorPtr;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite) // Deprecated - use EPoolObjectState instead
 	bool IsActive;
+
+	UPROPERTY(BlueprintReadWrite)
+	EPoolObjectState PoolState;
 };
+
 /// <summary>
 /// Created on 21-Jan-2026
 /// </summary>
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class MP_UTILITIES_API UObjectPoolComponent : public UActorComponent
+class MP_UTILITIES_API UObjectPoolComponent : public UActorComponent, public IIPoolable
 {
 	GENERATED_BODY()
 
@@ -40,6 +53,26 @@ public:
 
 
 public:
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	float bDebugFeedbackMsgDuration = 6;
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	FColor DebugFeedbackMsgColor = FColor::White;
+	
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	float bDebugErrorMsgDuration = 60;
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	FColor DebugErrorMsgColor = FColor::Red;
+
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	float DebugWarningMsgDuration = 6;
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	FColor DebugWarningMsgColor = FColor::Yellow;
+	
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	float bDebugValidationMsgDuration = 6;
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ DEBUG ]")
+	FColor DebugValidationMsgColor = FColor::Green;
+
 	UPROPERTY(BlueprintReadWrite, Category = "[ Pool Component ]")
 	TArray<FObjectPoolSlot> ObjectPoolList;
 
@@ -75,4 +108,10 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Pool Component ]")
 	virtual void Function_RetrieveFromPoolWithTransform(FTransform InTransform, bool& OutSuccessfullyRetrived);
+
+	/*
+	* On my MP_Weapons plugin this function is called by the projectile
+	*/
+	// Inherited via IIPoolable
+	void IFunction_ReturnToPool_Implementation(AActor* InActorPtr, bool& bOutSucceded) override;
 };

@@ -7,7 +7,7 @@
 #include "IPoolableActor.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE(MinimalAPI)
+UINTERFACE(MinimalAPI, BlueprintType)
 class UIPoolableActor : public UInterface
 {
 	GENERATED_BODY()
@@ -23,13 +23,17 @@ class MP_UTILITIES_API IIPoolableActor
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	// added on 21-Jan-2026
-	virtual void IFunction_ActivateActor() = 0; 
+	UFUNCTION(BlueprintNativeEvent)
+	void IFunction_ActivateActor(); 
 	/*
 	* it's supposed to call IFunction_ActivateActor() internally / on his cpp implementation
 	* // added on 21-Jan-2026
 	*/
-	virtual void IFunction_ResetActorWithTransform(const FTransform InTransform) = 0; 
+	UFUNCTION(BlueprintNativeEvent)
+	void IFunction_ResetActorWithTransform(const FTransform InTransform); 
+	
 	// added on 21-Jan-2026
-	virtual void IFunction_DeactivateActor() = 0; 
+	UFUNCTION(BlueprintNativeEvent)
+	void IFunction_DeactivateActor(); 
 
 };
