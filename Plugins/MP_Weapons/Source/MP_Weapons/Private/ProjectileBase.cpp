@@ -82,7 +82,7 @@ void AProjectileBase::Tick(float DeltaTime)
 
 }
 
-void AProjectileBase::Function_ResetProjectile() // this function is called by the Pool that is called by the weapon ( so projectile hit : return to pool() > Weapon call Retrieve from pool and if so call this )
+void AProjectileBase::Function_ResetProjectile(const FTransform InLaunchTransform) // this function is called by the Pool that is called by the weapon ( so projectile hit : return to pool() > Weapon call Retrieve from pool and if so call this )
 {
 	// Actor state
 	SetActorHiddenInGame(false);
@@ -90,7 +90,7 @@ void AProjectileBase::Function_ResetProjectile() // this function is called by t
 	SetActorTickEnabled(true);
 
 	bool bShouldSweep = false;
-	SetActorTransform(_ResetTransform, bShouldSweep, nullptr, ETeleportType::TeleportPhysics); // _resetTransform should be set by the Weapon!?
+	SetActorTransform(InLaunchTransform, bShouldSweep, nullptr, ETeleportType::TeleportPhysics);
 
 	// projectile specifics
 
@@ -111,10 +111,22 @@ void AProjectileBase::Function_ResetProjectile() // this function is called by t
 	_ProjectileMovementComponent->UpdateComponentVelocity();
 }
 
+void AProjectileBase::Function_EnterSleepState()
+{
+	// Actor state
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+
+	// projectile movement component
+	_ProjectileMovementComponent->StopMovementImmediately();
+	_ProjectileMovementComponent->Deactivate();
+}
+
 void AProjectileBase::Function_ReturnToPool()
 {
 	// feedback to check if this is called
-	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 3, FColor::White, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() Called!"); }
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 6, FColor::White, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() Called!"); }
 	// safety check for valid pool pointer
 	if (OwnerPoolPtr == nullptr) {
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() - OwnerPoolPtr is a nullptr!"); }
@@ -125,6 +137,7 @@ void AProjectileBase::Function_ReturnToPool()
 
 	if (OwnerPoolPtr->GetClass()->ImplementsInterface(UIPoolable::StaticClass())) {
 		IIPoolable::Execute_IFunction_ReturnToPool(OwnerPoolPtr, this, LcWasSuccefully);
+		this->Function_EnterSleepState();
 	}
 
 	//if (LcWasSuccefully) {
@@ -135,23 +148,20 @@ void AProjectileBase::Function_ReturnToPool()
 	}
 }
 
+void AProjectileBase::IFunction_SetOnHold_Implementation()
+{
+	this->Function_EnterSleepState();
+}
+
 void AProjectileBase::IFunction_ActivateActor_Implementation()
 {
 	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 3, FColor::White, this->GetName() + " - void AProjectileBase::IFunction_ActivateActor_Implementation()"); }
-	Function_ResetProjectile();
+	//Function_ResetProjectile();
 }
 
 void AProjectileBase::IFunction_DeactivateActor_Implementation()
 {
-	// Actor state
-	SetActorHiddenInGame(true);
-	SetActorEnableCollision(false);
-	SetActorTickEnabled(false);
-
-	// projectile movement component
-	_ProjectileMovementComponent->StopMovementImmediately();
-	_ProjectileMovementComponent->Deactivate();
-
+	this->Function_EnterSleepState();
 	// add some logic to put this into the pool (waiting state)... for what i got so far i need to set his respective "slot" isActive parameter set to false...
 	// so basicly i think i need to pass to this a reference of his slot index. or there are any other way? a way of the pool handle it without require that the object knows his slot?
 	// maybe a way is to this object have a reference to the pool and call a interface or function..
@@ -160,7 +170,22 @@ void AProjectileBase::IFunction_DeactivateActor_Implementation()
 void AProjectileBase::IFunction_ResetActorWithTransform_Implementation(FTransform InTransform)
 {
 	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, this->GetName() + " - void AProjectileBase::IFunction_ResetActorWithTransform_Implementation()"); }
-	this->_ResetTransform = InTransform;
+	// this->_ResetTransform = InTransform;
 	IIPoolableActor::Execute_IFunction_ActivateActor(this);
+}
+
+void AProjectileBase::IFunction_SetPointerToPoolComponent_Implementation(UActorComponent* InActorComponentPtr)
+{
+	if (InActorComponentPtr == nullptr)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + "AProjectileBase::IFunction_SetPointerToPoolComponent_Implementation() - InActorComponentPtr = nullptr");
+		UE_LOG(LogTemp, Error, TEXT("AProjectileBase::IFunction_SetPointerToPoolComponent_Implementation - InActorComponentPtr = nullptr")); return; }
+	}
+	OwnerPoolPtr = InActorComponentPtr;
+}
+
+void AProjectileBase::IFunction_LaunchProjectile_Implementation(const FTransform InLaunchTransform)
+{
+	this->Function_ResetProjectile(InLaunchTransform);
 }
 

@@ -22,6 +22,11 @@ class MP_UTILITIES_API IIPoolableActor
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
+	// added o 03-Fev-2026
+	UFUNCTION(BlueprintNativeEvent)
+	void IFunction_SetOnHold();
+
+
 	// added on 21-Jan-2026
 	UFUNCTION(BlueprintNativeEvent)
 	void IFunction_ActivateActor(); 
@@ -35,5 +40,9 @@ public:
 	// added on 21-Jan-2026
 	UFUNCTION(BlueprintNativeEvent)
 	void IFunction_DeactivateActor(); 
+
+	// added on 04-Fev-2026 in order to support the refactor of ProjectileWeapon , ProjectileBase of MP_Weapons(Plugin) to support the new PoolComponent ( of MP_Utitlities(plugin) )
+	UFUNCTION(BlueprintNativeEvent)
+	void IFunction_SetPointerToPoolComponent(UActorComponent* InActorComponentPtr);
 
 };

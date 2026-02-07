@@ -8,7 +8,8 @@
 #include "WeaponDefinitionPDA.h"
 
 #include "GameFramework/Character.h"
-#include "ObjectPoolComponent.h"
+#include "PoolComponent.h"
+
 //#include "IPoolableActor.h"
 
 AProjectileWeapon::AProjectileWeapon()
@@ -25,7 +26,7 @@ AProjectileWeapon::AProjectileWeapon()
 	PrimaryActorTick.TickGroup = TG_LastDemotable;
 
 	// Initialize Pool Component
-	PoolComponentPtr = CreateDefaultSubobject<UObjectPoolComponent>(TEXT("ProjectilePool AComponent"));
+	PoolComponentPtr = CreateDefaultSubobject<UPoolComponent>(TEXT("PoolComponent"));
 
 }
 
@@ -33,6 +34,8 @@ void AProjectileWeapon::BeginPlay()
 {
 	// Call parent BeginPlay
 	Super::BeginPlay();
+	UE_LOG(LogTemp, Error, TEXT("AProjectileWeapon::BeginPlay()"));
+	this->Function_InitialSetup();
 }
 
 void AProjectileWeapon::Tick(float DeltaTime)
@@ -49,6 +52,7 @@ void AProjectileWeapon::Tick(float DeltaTime)
 
 void AProjectileWeapon::Function_InitializeFromDefinition(UWeaponDefinitionPDA* WeaponDefinitionPDA)
 {
+	UE_LOG(LogTemp, Log, TEXT("AProjectileWeapon::Function_InitializeFromDefinition()"));
 	/// WeaponDefinitionPDA
 	/// |-> TSoftClassPtr<AWeaponBase> WeaponSoftClassPtr;
 	/// |-> TSoftObjectPtr<UTexture2D> WeaponIcon;
@@ -88,49 +92,68 @@ void AProjectileWeapon::Function_InitializeFromDefinition(UWeaponDefinitionPDA* 
 		return;
 	}
 
-	// Load the Weapon Data PDA synchronously
-	UWeaponPDA* L_WeaponDataPDA = WeaponDefinitionPDA->WeaponDataPDA.LoadSynchronous();
-
 	// Safety check : Check if L_WeaponDataPDA was loaded successfully
-	if (!IsValid(L_WeaponDataPDA))
+	if (!IsValid(this->WeaponData))
 	{
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - Failed to load WeaponDataPDA!")); }
 		return;
 	}
 
+	// OK after all the safety checks of base class and input parameters been validated STORE the ProjectileWeaponPDA ( DATA REF ) on this Weapon Actor
 	// Attempt to cast to Projectile Weapon PDA ( cause ProjectileWeaponPDA is a subclass of WeaponPDA, and it is needed the specifics about the projectile sub
-	const UProjectileWeaponPDA* L_ProjectileWeaponDefPDA = Cast<UProjectileWeaponPDA>(L_WeaponDataPDA);
+	ProjectileWeaponDataPtr = Cast<UProjectileWeaponPDA>(WeaponData);
 
 	// Safety check : Check for valid cast
-	if (!L_ProjectileWeaponDefPDA)
-	{
+	if (ProjectileWeaponDataPtr == nullptr){
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - Invalid Projectile Weapon Definition PDA!")); }
 		return;
 	}
-
+	// Safety check : if the Projectile (softRef) was set on the editor;
+	if (ProjectileWeaponDataPtr->ProjectileSoftClassPtr.IsNull()) {
+		GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + "ProjectileWeaponDataPtr->ProjectileSoftClassPtr.IsNull()"); return;
+	}
+	ProjectileSoftClassPtr = ProjectileWeaponDataPtr->ProjectileSoftClassPtr.LoadSynchronous();
 	// Set the initial projectile class
-	TSubclassOf<AProjectileBase> L_WeaponProjectilePtr;
-	Function_LoadProjectileClass(L_ProjectileWeaponDefPDA->ProjectileClassPtr, L_WeaponProjectilePtr);
-	Function_SetProjectileClass(L_WeaponProjectilePtr);
+	//TSubclassOf<AProjectileBase> LcProjectileSubClass = Function_LoadProjectileClass(ProjectileWeaponDataPtr->ProjectileSoftClassPtr.LoadSynchronous()); // so the problem is that the input is null, and i know that i assign it on the editor
+	_ProjectileSubClassRef = ProjectileWeaponDataPtr->ProjectileSoftClassPtr.LoadSynchronous();
+	if (_ProjectileSubClassRef == nullptr) { if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + "::Function_InitializeFromDefinition - SHIIITFailed to LoadProjectileClass()"); } return; }
+	Function_SetProjectileClass(_ProjectileSubClassRef);
 
-	// Add On Screen Debug Message to indicate successful cast
-	if (GEngine && bDebugMode) { GEngine->AddOnScreenDebugMessage(-1, 30.0f, FColor::Green, this->GetName() + TEXT("AProjectileWeapon::Function_InitializeFromDefinition() - Successfully casted to Projectile Weapon Definition PDA!")); }
-
-	//// Initialize Projectile Weapon specific properties from the PDA
-	//_TraceRange = L_ProjectileWeaponDefPDA->WeaponTraceRange;
-	//_WeaponFireRate = L_ProjectileWeaponDefPDA->WeaponFireRate;
-	//_ProjectileClass = L_ProjectileWeaponDefPDA->ProjectileClassPtr.LoadSynchronous();
+	//this->Function_InitialSetup();
 }
 
 void AProjectileWeapon::FunctionInitializeProjectilePool()
 {
+	UE_LOG(LogTemp, Log, TEXT("AProjectileWeapon::FunctionInitializeProjectilePool()"));
+	if (_ProjectileSubClassRef == nullptr) { UE_LOG(LogTemp, Log, TEXT("AProjectileWeapon::FunctionInitializeProjectilePool() - _ProjectileSubClassRef.Get()==false")); }
+	// Function_InitializePool() uses TSubclassOf<AActor> as input parameter but this->ProjectileClassPtr is 
+	PoolComponentPtr->Function_InitializePool(_ProjectileSubClassRef, 6, EPoolState::SleepSt);
 }
 
 void AProjectileWeapon::Function_ExecuteWeaponAction()
 {
-	//Method_SpawnProjectile(); - DEPRECATED
-
 	Function_Shoot();
+}
+
+void AProjectileWeapon::Function_InitialSetup()
+{
+	UE_LOG(LogTemp, Log, TEXT("AProjectileWeapon::Function_InitialSetup()"));
+	if (ProjectileWeaponDataPtr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ProjectileWeaponDataPtr valid: %s"), *ProjectileWeaponDataPtr->GetName());
+		if (ProjectileWeaponDataPtr->ProjectileSoftClassPtr.IsNull()) {
+		UE_LOG(LogTemp, Error, TEXT("ProjectileSoftClassPtr is NULL!"));
+		}
+		else {
+			UE_LOG(LogTemp, Warning, TEXT("ProjectileSoftClassPtr path: %s"), *ProjectileWeaponDataPtr->ProjectileSoftClassPtr.ToString());
+		}
+	}
+	// Safety Check
+	if (_ProjectileSubClassRef == nullptr) { if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + "::Function_InitialSetup() - _ProjectileSubClassPtr = nullptr"); } return; }
+	
+	// fill pool
+	if(PoolComponentPtr == nullptr) { UE_LOG(LogTemp, Error, TEXT("PoolComponentPtr = nullptr")); }
+	PoolComponentPtr->Function_InitializePool(_ProjectileSubClassRef, _ProjectileAmmount, EPoolState::SleepSt);
 }
 
 // WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP | WIP |
@@ -180,146 +203,37 @@ void AProjectileWeapon::Method_SetProjectileDestinationPoint(FVector InTargetLoc
 {
 }
 
-void AProjectileWeapon::Function_SetProjectileSpawnTransform(FTransform& OutTransform)
+FTransform AProjectileWeapon::Function_SetProjectileSpawnTransform()
 {
 	FVector SpawnLocation = _TraceStartPoint;
 	FQuat SpawnRotator = OwningPawnPtr->GetController()->GetControlRotation().Quaternion();
 
-	// Return
 	FTransform LcTransform;
 	LcTransform.SetLocation(SpawnLocation);
 	LcTransform.SetRotation(SpawnRotator);
 
-	OutTransform = LcTransform;
+	return LcTransform;
 }
 
-void AProjectileWeapon::Method_SpawnProjectile()
+TSubclassOf<AProjectileBase> AProjectileWeapon::Function_LoadProjectileClass(TSoftClassPtr<AProjectileBase> InSoftProjectileClassPtr)
 {
-	//Check if it has valid projectile class to spawn
-	if(!_ProjectileClassRef)
-	{
-		if(GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, TEXT("AProjectileWeapon::Method_SpawnProjectile() - Projectile class is not set!")); }
-		return;
-	}
-
-	// Get world context
-	UWorld* Lc_World = GetWorld();
-
-	// Safety check for valid world context
-	if (!Lc_World)
-	{
-		// [ Waring Message ]
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, TEXT("AProjectileWeapon::Method_SpawnProjectile() - World context is invalid!")); }
-		return;
-	}
-
-	// Set up Spawn
-
-	// Set spawn position
-	FVector LcSpawnLocation = _TraceStartPoint;
-	
-	// Safety check
-	if (OwningPawnPtr == nullptr) {
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - AProjectileWeapon::Method_SpawnProjectile() - OwningPawnPtr is a nullptr !"); }
-		return;
-	}
-	// Adictional safety check
-	if (OwningPawnPtr->IsA(ACharacter::StaticClass()) == false)
-	{
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - AProjectileWeapon::Method_SpawnProjectile() - OwningPawnPtr is not a character !"); }
-		return;
-	}
-
-
-	// Set Spawn Rotation
-	FRotator LcSpawnRotation;
-	// Match as player view/Aim/POV
-	LcSpawnRotation = OwningPawnPtr->GetController()->GetControlRotation(); // is this to heavy processing power to call on each time a projectile its fired/spawn?
-
-	// Create FTransform to spawn
-	FTransform LcSpawnTransform = FTransform(LcSpawnRotation, LcSpawnLocation);
-	
-	// Setup spawn parameters
-	FActorSpawnParameters LcSpawnParams;
-	LcSpawnParams.Owner = this;
-	LcSpawnParams.Instigator = GetInstigator();
-	LcSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	// Spawn the projectile actor
-	// AProjectileBase* SpawnedProjectile = Lc_World->SpawnActor<AProjectileBase>(_ProjectileClassRef, SpawnLocation, SpawnRotation, SpawnParams);
-
-	// SpawnDeferred so I can set all needed parameters/var values before the object exists in world
-	AProjectileBase* LcSpawnedProjectilePtr = Lc_World->SpawnActorDeferred<AProjectileBase>(_ProjectileClassRef, LcSpawnTransform, LcSpawnParams.Owner, LcSpawnParams.Instigator, LcSpawnParams.SpawnCollisionHandlingOverride);
-
-	// safety check : if Spawn has worked
-	if (!LcSpawnedProjectilePtr) {
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - void AProjectileWeapon::Method_SpawnProjectile() - LcSpawnedProjectilePtr is a null ptr !"); }
-		return;
-	}
-
-	// Add it to the pool
-		PoolComponentPtr->Function_AddToPool(LcSpawnedProjectilePtr, true);
-
-	// Set IPoolable ref ptr on the spawned projectile... but how?
-	LcSpawnedProjectilePtr->OwnerPoolInterfacePtr = PoolComponentPtr; /// DEPRECATED -  clean later
-	LcSpawnedProjectilePtr->OwnerPoolPtr = PoolComponentPtr;
-
-	// finish spawn / add to world
-	LcSpawnedProjectilePtr->FinishSpawning(LcSpawnTransform);
-
-	/*
-	* Correct lifecycle
-	* Constructor > SpawnActorDeferred > Set OwnerPool, Set initial transform, Configure movement > FinishSpawning > BeginPlay > Simulation starts
-	*/
-
-	if (bDebugMode)
-	{
-		// Debug Arrow to visualize the projectile spawn direction
-		DrawDebugDirectionalArrow(
-			GetWorld(),
-			LcSpawnLocation, // Start
-			LcSpawnLocation + (LcSpawnRotation.Vector() * 100), // End location
-			100.0f, // ArrowSize
-			FColor::Blue,
-			false, // bPersistentLines
-			0.6f, // LifeTime
-			1, // DepthPriority
-			1.0f // Thickness
-		);
-
-		// Debug a sphere that represents the spawn area/location
-		DrawDebugSphere(
-			GetWorld(),
-			LcSpawnLocation,
-			3, //radius
-			6, // segments
-			FColor::Black,
-			false,
-			0.6f, //lifetime
-			2, //depth
-			1 //thick
-		);
-	}
-	
-}
-
-void AProjectileWeapon::Function_LoadProjectileClass(TSoftClassPtr<AProjectileBase> InSoftProjectileClassPtr, TSubclassOf<AProjectileBase>& OutProjectileClassRef)
-{
+	UE_LOG(LogTemp, Log, TEXT("AProjectileWeapon::Function_LoadProjectileClass()"));
 	// Safety check : is the input parameter valid? if not return
 	if (InSoftProjectileClassPtr.IsNull()) {
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + "AProjectileWeapon::Function_LoadProjectileClass - InSoftProjectileClassPtr.IsNull"); }
-		OutProjectileClassRef = nullptr;
-		return;
+		return nullptr;
 	}
 
 	// Resolve / load the InSoftProjectileClassPtr to a hard ref and set it as the output parameter
-	OutProjectileClassRef = InSoftProjectileClassPtr.LoadSynchronous();
+	TSubclassOf<AProjectileBase> LcClassHardPtr = InSoftProjectileClassPtr.LoadSynchronous();
 
 	// Safety check : if the projectile hard ref was set / loaded
-	if (!OutProjectileClassRef.Get()) {
+	if (!LcClassHardPtr.Get()) {
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + "AProjectileWeapon::Function_LoadProjectileClass - OutProjectileClassRef.Get() has return a nullptr"); }
-		return;
+		return nullptr;
 	}
+
+	return LcClassHardPtr;
 
 	/// NOTE about ->
 	///                            When to use "->"
@@ -352,11 +266,11 @@ void AProjectileWeapon::Function_LoadProjectileClass(TSoftClassPtr<AProjectileBa
 	/// Returns: UClass* if the asset is already loaded or nullptr if not loaded yet
 
 	/// [ Aditional NOTES ]
-	/// Call               | Loads Asset?   | Retuns 
-	/// -------------------|----------------|---------------------
-	/// Get()              | No             | UClass* or nullptr       | .Get() is usually only needed if you need the raw pointer for passing into APIs expecting UClass*.
-	/// LoadSynchronous()  | Yes (blocking) | UClass*
-	/// IsNull()           | No             | Checks if path exists
+	/// Call                          | Loads Asset?     | Retuns 
+	/// ---------------------|-----------------|---------------------
+	/// Get()                        | No                    | UClass* or nullptr       | .Get() is usually only needed if you need the raw pointer for passing into APIs expecting UClass*.
+	/// LoadSynchronous()  | Yes (blocking)   | UClass*
+	/// IsNull()                     | No                    | Checks if path exists
 }
 
 void AProjectileWeapon::Function_InitializeProjectileSubClassData()
@@ -365,25 +279,28 @@ void AProjectileWeapon::Function_InitializeProjectileSubClassData()
 
 void AProjectileWeapon::Function_SetProjectileClass(TSubclassOf<AProjectileBase> InProjectileClass)
 {
+	UE_LOG(LogTemp, Log, TEXT("AProjectileWeapon::Function_SetProjectileClass()"));
 	// Safety check : the input parameter class is exist? if not return
-	if (!IsValid(InProjectileClass) || !InProjectileClass) {
-	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + "AProjectileWeapon::Function_SetProjectileClass() - InProjectileClass failed to be valid!"); }
+	if (InProjectileClass == nullptr)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60.0f, FColor::Red, this->GetName() + "AProjectileWeapon::Function_SetProjectileClass() - InProjectileClass failed to be valid!"); }
+		return;
 	}
 	// Set the projectile class
-	_ProjectileClassRef = InProjectileClass;
+	_ProjectileSubClassRef = InProjectileClass;
 
 	// TO DO : Problably good idea do give some feedback to the player, maybe through the function/class that calls this one
 }
 
 void AProjectileWeapon::Function_Shoot()
 {
-	bool bWasRetrived;
-	FTransform LcTranform;
-	Function_SetProjectileSpawnTransform(LcTranform);
-	PoolComponentPtr->Function_RetrieveFromPoolWithTransform(LcTranform, bWasRetrived);
-	if (bWasRetrived == false)
-	{
-		this->Method_SpawnProjectile();
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, "AProjectileWeapon::Function_Shoot() - Projectile has been TRULLY SPAWNED"); }
+	UE_LOG(LogTemp, Log, TEXT("AProjectileWeapon::Function_Shoot()"));
+	// First acquire a projectile actor // new pool component
+	AActor* LcActorPtr = PoolComponentPtr->Function_AcquireActorPtr(); 
+	 //Safety check
+	if (LcActorPtr == nullptr) { if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - ::Function_Shoot() - LcActorPtr = nullptr"); } return; } // this trigger when i shoot
+	// safety check if implements the ProjectileInterface to ensure that the actor is in fact a projectile
+	if (LcActorPtr->GetClass()->ImplementsInterface(UProjectileInterface::StaticClass())) {
+		IProjectileInterface::Execute_IFunction_LaunchProjectile(LcActorPtr, this->Function_SetProjectileSpawnTransform());
 	}
 }

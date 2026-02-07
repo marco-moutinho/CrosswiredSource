@@ -8,15 +8,16 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "IPoolableActor.h" // interface that pool calls on actor ( to : activate & deactivate object )
 #include "IPoolable.h" // interface that this calls on/to pool
+#include "ProjectileInterface.h"
 
 #include "ProjectileBase.generated.h"
 
-// Created on: 29/11/2025
+
 /*
- * 
+ * Created on: 29/11/2025 | Last Change 07-Fev-2026
  */
 UCLASS()
-class MP_WEAPONS_API AProjectileBase : public AActor, public IIPoolableActor
+class MP_WEAPONS_API AProjectileBase : public AActor, public IIPoolableActor, public IProjectileInterface
 {
 	GENERATED_BODY()
 	
@@ -60,12 +61,11 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "[ Projectile Class ]|Components")
 	UProjectileMovementComponent* _ProjectileMovementComponent;
 
-	// set this when reset projectile, just to not add input parameters to the interface
-	UPROPERTY(BlueprintReadWrite)
-	FTransform _ResetTransform;
+	UFUNCTION()
+	void Function_ResetProjectile(const FTransform InLaunchTransform);
 
 	UFUNCTION()
-	void Function_ResetProjectile();
+	virtual void Function_EnterSleepState(); // added 05-Fev-2026
 
 	// this function calls the pool interface function
 	//UFUNCTION() // do i need to write this? what i gain (and lost) by writing it?
@@ -73,20 +73,26 @@ protected:
 
 
 public:
-	// This needs to be set on the actor spawn
-	UPROPERTY() // <- do i need to write this? what i gain (and lost) by writing it?
-	TScriptInterface<IIPoolable> OwnerPoolInterfacePtr;
 
 	UPROPERTY()
 	UActorComponent* OwnerPoolPtr; // this must be set by the weapon, cause on my system the pool is a ActorComponent that is attached to the weapon Actor
 
-	// Inherited via IIPoolableActor
+	// IPoolableActor
+	virtual void IFunction_SetOnHold_Implementation() override;
+
+	// via IIPoolableActor
 	virtual void IFunction_ActivateActor_Implementation() override;
 
+	// via IIPoolableActor
 	virtual void IFunction_DeactivateActor_Implementation() override;
 
-
-	// Inherited via IIPoolableActor
+	// via IIPoolableActor
 	virtual void IFunction_ResetActorWithTransform_Implementation(FTransform InTransform) override;
 
+	// via IIPoolableActor
+	virtual void IFunction_SetPointerToPoolComponent_Implementation(UActorComponent* InActorComponentPtr) override;
+
+	// Implementation of ProjectileInterface
+	//...
+	virtual void IFunction_LaunchProjectile_Implementation(const FTransform InLaunchTransform) override;
 };

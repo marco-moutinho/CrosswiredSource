@@ -22,10 +22,6 @@
 			"Name": "Diversion",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/7c8abd783acd4d66a5290a12a5d67523"
-		},
-		{
-			"Name": "MP_Gluon",
-			"Enabled": false
 		}
 	],
 	"TargetPlatforms": [

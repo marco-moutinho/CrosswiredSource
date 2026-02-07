@@ -35,5 +35,5 @@ public:
 
 	// Projectile class to spawn
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "[ Projectile Sub Class ]")
-	TSoftClassPtr<AProjectileBase> ProjectileClassPtr;
+	TSoftClassPtr<AProjectileBase> ProjectileSoftClassPtr;
 };

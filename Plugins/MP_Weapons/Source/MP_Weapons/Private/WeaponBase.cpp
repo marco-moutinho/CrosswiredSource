@@ -2,7 +2,8 @@
 
 
 #include "WeaponBase.h"
-
+#include "WeaponPDA.h"
+#include "WeaponDefinitionPDA.h"
 // Sets default values
 AWeaponBase::AWeaponBase()
 {
@@ -68,6 +69,7 @@ void AWeaponBase::Function_InitializeFromDefinition(UWeaponDefinitionPDA* Weapon
 		if(GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - AWeaponBase::Function_InitializeFromDefinition - WeaponDefinitionPDA is null"); }
 		return;
 	}
+	WeaponData =WeaponDefinitionPDA->WeaponDataPDA.LoadSynchronous();
 }
 
 void AWeaponBase::Function_ExecuteWeaponAction()

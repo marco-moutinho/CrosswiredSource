@@ -204,7 +204,7 @@ public:
 	* Added on 15-Jan-2026
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_EquipWeaponAdvanced(int InHolsterSlotIndex, USceneComponent* InSceneComponent, AWeaponBase*& OutWeapon);
+	virtual void Function_EquipWeaponAdvanced(int InHolsterSlotIndex, USceneComponent* InSceneComponent);
 
 	/*
 	* Spawns a weapon actor based on the weapon definition stored in the holster at the provided slot index;
@@ -213,16 +213,16 @@ public:
 	* Created on 15-Jan-2026
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_SpawnWeaponFromHolster(int InSlotIndex, AWeaponBase*& OutWeaponPtr);
+	virtual AWeaponBase* Function_SpawnWeaponFromHolster(int InSlotIndex);
 
 	/*
-	* Returns a spawned weapon actor based on the provided weapon definition;
-	* Only call this via Blueprint if want more control over overall process;
-	* NOTE: Weapon will spawn at the (0,0,0) of the world by this function;
+	* [ Weapon User Functions ]
+	*  it "SpawnActorDeferred" and initializes it/passes it the initial setup properties
+	* it's called internally by this->Function_SpawnWeaponFromHolster
 	* Created on 12-Jan-2026 / Last changed on 15-Jan-2026
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ Weapon User Functions ]")
-	virtual void Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef, AWeaponBase*& OutSpawnedWeaponPtr);
+	virtual AWeaponBase* Function_SpawnWeaponFromDefinition(UWeaponDefinitionPDA* InWeaponDef);
 
 	/*
 	* Sets CurrentWeaponPtr to InWeaponRef;

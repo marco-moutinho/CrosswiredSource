@@ -11,7 +11,6 @@ public class MP_Utilities : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
-				"MP_Utilities/Public",
             }
 			);
 				
@@ -19,7 +18,6 @@ public class MP_Utilities : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
-				"MP_Utilities/Private",
             }
 			);
 			
