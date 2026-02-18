@@ -191,7 +191,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "[ Projectile Subclass Properties ]|RTO")
 	FVector _ProjectileDestinationPoint;
 	
-	UPROPERTY(BlueprintReadWrite, Category = "[ Projectile Subclass Properties ]|Components")
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "[ Projectile Subclass Properties ]|Components")
 	TObjectPtr<UPoolComponent> PoolComponentPtr;
 
 	/*

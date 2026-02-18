@@ -125,8 +125,6 @@ void AProjectileBase::Function_EnterSleepState()
 
 void AProjectileBase::Function_ReturnToPool()
 {
-	// feedback to check if this is called
-	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 6, FColor::White, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() Called!"); }
 	// safety check for valid pool pointer
 	if (OwnerPoolPtr == nullptr) {
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() - OwnerPoolPtr is a nullptr!"); }

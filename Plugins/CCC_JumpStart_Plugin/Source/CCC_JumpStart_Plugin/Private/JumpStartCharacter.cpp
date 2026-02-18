@@ -7,7 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
-AJumpStartCharacter::AJumpStartCharacter()
+AJumpStartCharacter::AJumpStartCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UJumpStartMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -24,10 +24,29 @@ AJumpStartCharacter::AJumpStartCharacter()
 	M_Camera_Ptr = CreateDefaultSubobject<UCameraComponent>(TEXT("QS Camera Component"));
 	// Attach it
 	M_Camera_Ptr->SetupAttachment(M_SpringArm_Ptr);
+
+	// Replace default movement component with your custom one
+	//UJumpStartMovementComponent* LcJumpStartMoveComp = CreateDefaultSubobject<UJumpStartMovementComponent>(TEXT("JumpStartMovementComponent"));
+	//if (LcJumpStartMoveComp)
+	//{
+	//	// Replace the movement component pointer in Character
+	//	GetCharacterMovement()->DestroyComponent(); // optional if default exists
+	//	M_JSMovementCompPtr = LcJumpStartMoveComp;
+	//	LcJumpStartMoveComp->UpdatedComponent = RootComponent;
+	//}
+
+	M_JSMovementCompPtr = Cast<UJumpStartMovementComponent>(GetCharacterMovement());
 }
 
 void AJumpStartCharacter::OnConstruction(const FTransform& Transform)
 {
+	// Auto initialize the JumpStartCharacter
+	//if (_AutoInit) { Function_InitializeJumpStartCharacter(); }
+}
+
+void AJumpStartCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
 	// Auto initialize the JumpStartCharacter
 	if (_AutoInit) { Function_InitializeJumpStartCharacter(); }
 }
@@ -36,7 +55,6 @@ void AJumpStartCharacter::OnConstruction(const FTransform& Transform)
 void AJumpStartCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AJumpStartCharacter::Function_SetThirdPersonControlSettings()
@@ -89,6 +107,8 @@ void AJumpStartCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	M_JSMovementCompPtr->Function_StartClimb();
+
 }
 
 // Called to bind functionality to input
@@ -123,6 +143,9 @@ void AJumpStartCharacter::Function_MoveSimple(FVector2D In_Direction)
 			AddMovementInput(L_RightDir, In_Direction.X);
 		}
 	}
+
+	// Set Movement Input values on JumpStart CharacterMovementComponent
+	M_JSMovementCompPtr->Function_ReadOwnerMovementInput(In_Direction);
 }
 
 void AJumpStartCharacter::Function_LookSimple(FVector2D In_Direction, float In_Sensitivity, bool In_IsInverted)

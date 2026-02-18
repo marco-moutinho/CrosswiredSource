@@ -7,6 +7,7 @@
 
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "JumpStartMovementComponent.h"
 
 #include "JumpStartCharacter.generated.h"
 
@@ -51,6 +52,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "[ JumpStart Components ]", meta = (DisplayName = "JSCamera"))
 	UCameraComponent* M_Camera_Ptr;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category ="[ JumpStart Components ]", meta = (DisplayName = "JumpStartMovementComp"))
+	UJumpStartMovementComponent* M_JSMovementCompPtr;
+
 	// Game feel / Tunning values:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Trace", meta = (DisplayName = "Range"))
@@ -72,12 +76,14 @@ protected:
 
 public:
 	// Sets default values for this character's properties | this is built in method aka its automatic created by Unreal Engine
-	AJumpStartCharacter();
+	AJumpStartCharacter(const FObjectInitializer& ObjectInitializer);
 
 protected:
 
 	// Call on Construction
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	virtual void PostInitializeComponents() override;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
