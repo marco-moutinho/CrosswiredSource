@@ -12,7 +12,8 @@
 UENUM(BlueprintType)
 enum class EJumpStartMovementModes : uint8 {
 	CMM_None UMETA(DisplayName = "None"),
-	CMM_Climb UMETA(DisplayName = "Climb")
+	CMM_Climb UMETA(DisplayName = "Climb"),
+	CMM_Dash  UMETA(DisplayName = "Dash")
 };
 
 USTRUCT(BlueprintType)
@@ -44,6 +45,28 @@ struct FClimbAngleParams
 	UPROPERTY(EditDefaultsOnly)
 	float MaxLaterallyClimbAngle;
 };
+
+/*
+* created 22-Fev-2026
+*/
+USTRUCT(BlueprintType)
+struct  FDashParams
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	float DashDuration = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float DashDistance = 100;
+
+	UPROPERTY(EditDefaultsOnly)
+	bool bDashCanChangeDirection = false;
+
+	UPROPERTY(EditDefaultsOnly)
+	bool bDashIgnoresGravity = true;
+};
+
 
 /**
  * Created on 17-02-2026
@@ -90,14 +113,26 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
 	FClimbAngleParams ClimbAngleParams;
 
+	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Dash")
+	FDashParams DashParams;
+
 	// Runtime...
 	UPROPERTY(BlueprintReadWrite)
 	FVector2D InputMoveValue; // <- Need to bind from Character to this
 
+
+	// climb
+	bool bCanClimb;
 	float CapsuleRadius;
 	bool bIsClimbing;
 	FVector CurrentClimbNormal;
 	FHitResult CurrentClimbHit;
+
+	// Dash float
+	bool bCanDash;
+	bool bIsDoingDash;
+	float DashElapsedTime;
+	FVector DashDirection;
 
 	UPROPERTY(EditAnywhere, Category = "[ JumpStart Propertys ]|Debug")
 	bool bDrawDebug;
@@ -108,6 +143,12 @@ public:
 	*/
 	UFUNCTION()
 	virtual void Function_ReadOwnerMovementInput(FVector2D InVector2D);
+
+	/*
+	* 22-Fev-2026
+	*/
+	UFUNCTION()
+	virtual void Function_SetIfCanClimb(bool InBool);
 
 	/*
 	* Added on 17-Fev-2026
@@ -136,9 +177,33 @@ protected:
 
 public:
 	/*
+	* Created on 22-Fev-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Dash")
+	virtual void Function_SetDashParameters(FDashParams InParams);
+
+	/*
+	* Created on 22-Fev-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Dash")
+	void Function_StartDash(FVector InDirection);
+
+protected:
+	/*
+	* Created on 22-Fev-2026
+	*/
+	void Function_StopDash();
+
+	/*
+	* Created on 22-Fev-2026
+	*/
+	virtual void Function_Dash(float InDeltaTime);
+
+public:
+	/*
 	* Added on 18-Fev-2026
 	*/
-	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions]")
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Geral")
 	void Function_SetCapsuleRadiusRefValue(float InValue);
 
 };

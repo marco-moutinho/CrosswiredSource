@@ -6,14 +6,20 @@
 UJumpStartMovementComponent::UJumpStartMovementComponent()
 {
 	bIsClimbing = false;
+	bCanDash = true;
 }
 
 void UJumpStartMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 {
-	// if current move mode is Climb
-	if (CustomMovementMode == (uint8)EJumpStartMovementModes::CMM_Climb) {
+	// handle Climb mode
+	if (CustomMovementMode == (uint8)EJumpStartMovementModes::CMM_Climb && bCanClimb) {
 		Function_PhysClimb(DeltaTime, Iterations);
 		return;
+	}
+
+	// Handle Dash mode
+	if (CustomMovementMode == (uint8)EJumpStartMovementModes::CMM_Dash && bCanDash) {
+		Function_Dash(DeltaTime);
 	}
 
 	// Otherwise fallback to normal custom physics
@@ -23,6 +29,11 @@ void UJumpStartMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 void UJumpStartMovementComponent::Function_ReadOwnerMovementInput(FVector2D InVector2D)
 {
 	InputMoveValue = InVector2D;
+}
+
+void UJumpStartMovementComponent::Function_SetIfCanClimb(bool InBool)
+{
+	bCanClimb = InBool;
 }
 
 void UJumpStartMovementComponent::Function_StartClimb()
@@ -92,34 +103,6 @@ void UJumpStartMovementComponent::Function_PhysClimb(float DeltaTime, int32 Iter
 		Function_StopClimb();
 		return;
 	}
-
-	// Step 2: Snap to wall - this should set actor location a distance away from the wall surface
-	/*FVector TargetLocation = LcHit.ImpactPoint + CurrentClimbNormal * ClimbWallOffset;
-	TargetLocation.Z = PawnOwner->GetActorLocation().Z;
-	FVector LcSnapDelta = TargetLocation - UpdatedComponent->GetComponentLocation();
-	FHitResult LcSnapHit;
-	SafeMoveUpdatedComponent(LcSnapDelta, UpdatedComponent->GetComponentQuat(), true, LcSnapHit);*/
-
-	//FVector CurrentLocation = UpdatedComponent->GetComponentLocation();
-
-	//// Wall plane = ImpactPoint + ImpactNormal
-	//FVector WallNormal = LcHit.ImpactNormal.GetSafeNormal();
-	//FVector WallPoint = LcHit.ImpactPoint;
-
-	//// Project current location onto wall plane along the wall normal
-	//FVector ToWall = CurrentLocation - WallPoint;
-	//float DistanceAlongNormal = FVector::DotProduct(ToWall, WallNormal);
-
-	//// Compute new location: move exactly to ClimbWallOffset distance
-	//FVector SnappedLocation = CurrentLocation - WallNormal * (DistanceAlongNormal - ClimbWallOffset);
-
-	//// Keep Z the same for testing
-	//SnappedLocation.Z = CurrentLocation.Z;
-
-	//// Move the capsule
-	//FHitResult SnapHit;
-	//SafeMoveUpdatedComponent(SnappedLocation - CurrentLocation, UpdatedComponent->GetComponentQuat(), true, SnapHit);
-
 
 	//Step2 v3
 	FVector ComponentLocation = UpdatedComponent->GetComponentLocation();
@@ -202,6 +185,58 @@ bool UJumpStartMovementComponent::Function_HasClimbableSurface(FHitResult& OutHi
 	}
 	
 	return true;
+}
+
+void UJumpStartMovementComponent::Function_SetDashParameters(FDashParams InParams)
+{
+	DashParams = InParams;
+}
+
+void UJumpStartMovementComponent::Function_StartDash(FVector InDirection)
+{
+	DashDirection = InDirection;
+	DashElapsedTime = 0;
+	bIsDoingDash = true;
+
+	SetMovementMode(MOVE_Custom, (uint8)EJumpStartMovementModes::CMM_Dash);
+}
+
+void UJumpStartMovementComponent::Function_StopDash()
+{
+	bIsDoingDash = false;
+
+	// On Stop doing Dash check if is grounded to set next movement mode to walk or falling
+	FFindFloorResult LcFindFloorResult;
+	FindFloor(PawnOwner->GetActorLocation(), LcFindFloorResult, false);
+	if (LcFindFloorResult.bBlockingHit) {
+		SetMovementMode(MOVE_Walking);
+	}
+	else {
+		SetMovementMode(MOVE_Falling);
+	}
+}
+
+void UJumpStartMovementComponent::Function_Dash(float InDeltaTime)
+{
+	DashElapsedTime += InDeltaTime;
+	if (DashElapsedTime >= DashParams.DashDuration) {
+		Function_StopDash();
+		return;
+	}
+
+	FVector LcDirection;
+
+	if (DashParams.bDashCanChangeDirection == false) {  LcDirection = GetLastInputVector(); }
+	else { LcDirection = DashDirection; }
+	// Known "Bug" - If DashDirection is ZERO the character just stands still
+	
+	FVector LcDelta = LcDirection.GetSafeNormal() * (DashParams.DashDistance / DashParams.DashDuration);
+	LcDelta *= InDeltaTime;
+
+	FHitResult LcHitResult;
+
+	// Apply movement
+	SafeMoveUpdatedComponent(LcDelta, UpdatedComponent->GetComponentQuat(), true, LcHitResult);
 }
 
 void UJumpStartMovementComponent::Function_SetCapsuleRadiusRefValue(float InValue)

@@ -107,7 +107,7 @@ void AJumpStartCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	M_JSMovementCompPtr->Function_StartClimb();
+	//M_JSMovementCompPtr->Function_StartClimb(); <- insted maybe should bind this to player give movement input or a manual input
 
 }
 
