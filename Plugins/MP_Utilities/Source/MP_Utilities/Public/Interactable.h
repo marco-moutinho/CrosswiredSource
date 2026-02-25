@@ -4,27 +4,27 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "IPoolable.generated.h"
-/*
-* added on 26-Jan-2026 - DEPRECATED INTERFACE
-*/
+#include "Interactable.generated.h"
+
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI, BlueprintType)
-class UIPoolable : public UInterface
+class UInteractable : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ * Created on 24-Fev-2026
  */
-class MP_UTILITIES_API IIPoolable
+class MP_UTILITIES_API IInteractable
 {
 	GENERATED_BODY()
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-
-	UFUNCTION(BlueprintNativeEvent) // added on 26-Jan-2026
-	void IFunction_ReturnToPool(AActor* InActorPtr, bool& bOutSucceded);
+	/*
+	* Created on 24-Fev-2026
+	*/
+	UFUNCTION(BlueprintNativeEvent)
+	void IFunction_Interact();
 };

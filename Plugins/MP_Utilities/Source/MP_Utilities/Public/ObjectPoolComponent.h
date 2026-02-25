@@ -32,7 +32,7 @@ public:
 };
 
 /// <summary>
-/// Created on 21-Jan-2026
+/// Created on 21-Jan-2026 - DEPRECATED COMPONENT / CLASS
 /// </summary>
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MP_UTILITIES_API UObjectPoolComponent : public UActorComponent, public IIPoolable

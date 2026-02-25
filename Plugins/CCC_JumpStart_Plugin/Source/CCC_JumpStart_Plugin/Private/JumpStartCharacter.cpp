@@ -5,6 +5,7 @@
 
 // should this include be on the .h file or can be on this file 100% problem free?
 #include "GameFramework/CharacterMovementComponent.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 
 // Sets default values
 AJumpStartCharacter::AJumpStartCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UJumpStartMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -16,26 +17,23 @@ AJumpStartCharacter::AJumpStartCharacter(const FObjectInitializer& ObjectInitial
 	// Initialize and attach the character core components ----------------------------------------------------------------
 
 	//Initialize Spring arm
-	M_SpringArm_Ptr = CreateDefaultSubobject<USpringArmComponent>(TEXT("QS Spring Arm Component"));
+	M_SpringArm_Ptr = CreateDefaultSubobject<USpringArmComponent>(TEXT("_QSSpringArmComponent"));
 	// Attach it
 	M_SpringArm_Ptr->SetupAttachment(RootComponent);
+	M_SpringArm_Ptr->SocketOffset = FVector(0, 0, _FirstPersonSpringArmVerticalOffset);
+	//M_SpringArm_Ptr->TargetArmLength = _ThirdPersonSpringArmLenght;
 
 	// Initialize Camera
-	M_Camera_Ptr = CreateDefaultSubobject<UCameraComponent>(TEXT("QS Camera Component"));
+	M_Camera_Ptr = CreateDefaultSubobject<UCameraComponent>(TEXT("_JSCameraComponent"));
 	// Attach it
 	M_Camera_Ptr->SetupAttachment(M_SpringArm_Ptr);
 
-	// Replace default movement component with your custom one
-	//UJumpStartMovementComponent* LcJumpStartMoveComp = CreateDefaultSubobject<UJumpStartMovementComponent>(TEXT("JumpStartMovementComponent"));
-	//if (LcJumpStartMoveComp)
-	//{
-	//	// Replace the movement component pointer in Character
-	//	GetCharacterMovement()->DestroyComponent(); // optional if default exists
-	//	M_JSMovementCompPtr = LcJumpStartMoveComp;
-	//	LcJumpStartMoveComp->UpdatedComponent = RootComponent;
-	//}
+	// PhysicsHandleComponent
+	M_PhysicHandleComponentPtr = CreateDefaultSubobject<UPhysicsHandleComponent>(TEXT("_PhysicsHandleComponent"));
 
+	// JumpStart CharacterMovementComponent
 	M_JSMovementCompPtr = Cast<UJumpStartMovementComponent>(GetCharacterMovement());
+
 }
 
 void AJumpStartCharacter::OnConstruction(const FTransform& Transform)
@@ -55,6 +53,31 @@ void AJumpStartCharacter::PostInitializeComponents()
 void AJumpStartCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void AJumpStartCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// Cast to EnhancedInputComponent
+	if (UEnhancedInputComponent* LcEIC = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
+
+		// Move input
+		if (_Inputs.IA_Move) {
+			LcEIC->BindAction(_Inputs.IA_Move, ETriggerEvent::Started, this, &AJumpStartCharacter::Function_MoveSimple);
+			LcEIC->BindAction(_Inputs.IA_Move, ETriggerEvent::Triggered, this, &AJumpStartCharacter::Function_MoveSimple);
+			LcEIC->BindAction(_Inputs.IA_Move, ETriggerEvent::Completed, this, &AJumpStartCharacter::Function_MoveSimple);
+			LcEIC->BindAction(_Inputs.IA_Move, ETriggerEvent::Canceled, this, &AJumpStartCharacter::Function_MoveSimple);
+		}
+
+		// Look Input
+		if (_Inputs.IA_Look) {
+			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Started, this, &AJumpStartCharacter::Function_LookSimple);
+			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Triggered, this, &AJumpStartCharacter::Function_LookSimple);
+			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Completed, this, &AJumpStartCharacter::Function_LookSimple);
+			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Canceled, this, &AJumpStartCharacter::Function_LookSimple);
+		}
+	}
 }
 
 void AJumpStartCharacter::Function_SetThirdPersonControlSettings()
@@ -77,8 +100,10 @@ void AJumpStartCharacter::Function_SetFirstPersonControlSettings()
 {
 	bUseControllerRotationYaw = true;
 	M_SpringArm_Ptr->bUsePawnControlRotation = true;
-	M_Camera_Ptr->bUsePawnControlRotation = true;
+	M_Camera_Ptr->bUsePawnControlRotation = false;
 	this->GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	M_SpringArm_Ptr->SocketOffset = FVector(0, 0, _FirstPersonSpringArmVerticalOffset);
 
 	if (GEngine) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("First Person Control Settings Applied"));
@@ -110,16 +135,11 @@ void AJumpStartCharacter::Tick(float DeltaTime)
 	//M_JSMovementCompPtr->Function_StartClimb(); <- insted maybe should bind this to player give movement input or a manual input
 
 }
-
-// Called to bind functionality to input
-void AJumpStartCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AJumpStartCharacter::Function_MoveSimple(const FInputActionValue& InValue)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	// Extract FVector2D from the generic FInputActionValue
+	FVector2D In_Direction = InValue.Get<FVector2D>();
 
-}
-
-void AJumpStartCharacter::Function_MoveSimple(FVector2D In_Direction)
-{
 	// MEMORY NOTES: The var "Controller" is a Built-in on Character class,
 	// even I had made this method thinking to be called from a PlayerController, I had decided to check this cause someone called from the character itself or something
 	if (Controller != nullptr)
@@ -148,18 +168,20 @@ void AJumpStartCharacter::Function_MoveSimple(FVector2D In_Direction)
 	M_JSMovementCompPtr->Function_ReadOwnerMovementInput(In_Direction);
 }
 
-void AJumpStartCharacter::Function_LookSimple(FVector2D In_Direction, float In_Sensitivity, bool In_IsInverted)
+void AJumpStartCharacter::Function_LookSimple(const FInputActionValue& InValue)
 {
+	// Extract FVector2D from the generic FInputActionValue
+	FVector2D LcInVector2DValue = InValue.Get<FVector2D>();
 	if (Controller != nullptr)
 	{
 		// Calculate the look vector based on the player input and sensitivity
-		FVector2D L_LookVector(In_Direction * In_Sensitivity);
+		FVector2D L_LookVector(LcInVector2DValue * _LookSensitivity);
 
 		// Apply Yaw (Look right/left)
-		if (In_Direction.X != 0) { AddControllerYawInput(L_LookVector.X); }
+		if (LcInVector2DValue.X != 0) { AddControllerYawInput(L_LookVector.X); }
 
 		// Apply Pitch (Look up/down)
-		if (In_Direction.Y != 0)if (In_IsInverted) { L_LookVector.Y = -L_LookVector.Y; }
+		if (LcInVector2DValue.Y != 0) { if (_bIsLookPitchInverted) { L_LookVector.Y = -L_LookVector.Y; } }
 		AddControllerPitchInput(L_LookVector.Y);
 	}
 }
