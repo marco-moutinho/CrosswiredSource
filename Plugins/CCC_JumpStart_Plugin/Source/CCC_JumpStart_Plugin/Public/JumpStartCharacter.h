@@ -14,6 +14,8 @@
 #include "EnhancedInputComponent.h"		// For UEnhancedInputComponent
 #include "EnhancedInputSubsystems.h"		// For adding Input Mapping Context
 
+#include "Materials/MaterialInterface.h"
+
 #include "JumpStartCharacter.generated.h"
 
 // Forward declarations (faster compile, no full include here)
@@ -112,10 +114,26 @@ protected:
 	FHitResult M_POVTracehitResult;
 
 	UPROPERTY()
-	bool _bIsLookPitchInverted;
+	bool _bIsLookPitchInverted = false;
 
 	UPROPERTY()
 	float _LookSensitivity = 1;
+
+	// Physic Handle stuff
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "[ JumpStart Parameters ]|Grab")
+	float _HeldActorPositionOffset;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "[ JumpStart Parameters ]|Grab")
+	FCollisionProfileName _GrabChannel;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "[ JumpStart Parameters ]|Grab")
+	float _GrabSphereSweepRadius = 10;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "[ JumpStart Parameters ]|Grab")
+	UMaterialInterface* _GhostMaterial;
+
+	// ...RTO
+	AActor* _HeldedPhysicActorPtr;
+	FVector _HeldedActorTargetPosition;
+	FRotator _HeldedActorTargetRotation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Helpers")
 	bool M_ShowDebugDraws; bool M_ShowDebugMessage; bool M_DebugMode;
@@ -146,6 +164,31 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]", meta = (ToolTip = "Initializes the JumpStart Character by creating and setting up its components according to the specified parameters."))
 	virtual void Function_InitializeJumpStartCharacter();
+
+	/*
+	* Created on 26-Fev-2026
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]")
+	virtual void Function_GrabPhysicsActor();
+
+	/*
+	* Created on 26-Fev-2026
+	*/
+	UFUNCTION()
+	virtual void Function_HeldPhysicActor();
+
+	/*
+	* Created on 26-Fev-2026
+	*/
+	UFUNCTION()
+	virtual void Function_ReleaseCurrentHeldedPhysicActor(AActor*& OutActorPtr);
+
+	/*
+	* Created on 26-Fev-2026
+	*/
+	UFUNCTION()
+	virtual void Function_CalculateGrabLocationAndRotation(FVector& OutPosition, FRotator& OutRotation);
+
 
 public:	
 	// Called every frame

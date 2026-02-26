@@ -13,6 +13,22 @@ AJumpStartCharacter::AJumpStartCharacter(const FObjectInitializer& ObjectInitial
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	FString LcTGName;
+
+	switch (this->PrimaryActorTick.TickGroup)
+	{
+	case TG_PrePhysics:      LcTGName = TEXT("TG_PrePhysics"); break;
+	case TG_StartPhysics:    LcTGName = TEXT("TG_StartPhysics"); break;
+	case TG_DuringPhysics:   LcTGName = TEXT("TG_DuringPhysics"); break;
+	case TG_PostPhysics:     LcTGName = TEXT("TG_PostPhysics"); break;
+	case TG_LastDemotable:   LcTGName = TEXT("TG_LastDemotable"); break;
+	case TG_NewlySpawned:    LcTGName = TEXT("TG_NewlySpawned"); break;
+	case TG_MAX:             LcTGName = TEXT("TG_MAX"); break;
+	default:                 LcTGName = TEXT("Unknown"); break;
+	}
+
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::White, "this tickGroup : " + LcTGName); }
+
 
 	// Initialize and attach the character core components ----------------------------------------------------------------
 
@@ -77,6 +93,9 @@ void AJumpStartCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Completed, this, &AJumpStartCharacter::Function_LookSimple);
 			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Canceled, this, &AJumpStartCharacter::Function_LookSimple);
 		}
+
+		// Grab Input
+		LcEIC->BindAction(_Inputs.IA_Interact, ETriggerEvent::Started, this, &AJumpStartCharacter::Function_GrabPhysicsActor);
 	}
 }
 
@@ -127,13 +146,65 @@ void AJumpStartCharacter::Function_InitializeJumpStartCharacter()
 	}
 }
 
+void AJumpStartCharacter::Function_GrabPhysicsActor()
+{
+	FVector LcStart = M_Camera_Ptr->GetComponentLocation();
+	FVector LcEnd = LcStart + (GetControlRotation().Vector() * _POVTraceLenght);
+	FQuat LcQuat = FQuat::Identity;
+	FCollisionShape LcCollisionShape = FCollisionShape::MakeSphere(_GrabSphereSweepRadius);
+	FCollisionQueryParams LcCollisionQueryParams;
+	LcCollisionQueryParams.AddIgnoredActor(this);
+
+	FHitResult LcHitResult;
+
+	GetWorld()->SweepSingleByProfile(LcHitResult, LcStart, LcEnd, LcQuat, _GrabChannel.Name, LcCollisionShape, LcCollisionQueryParams);
+	if (LcHitResult.bBlockingHit) {
+		// Check if the hit component does simulate physics, cause it is needed to be used by the PhysicHandleComponent
+		if (LcHitResult.Component->IsSimulatingPhysics()) {
+			// Get the actor that owns the component that was hit and set it as ref
+			_HeldedPhysicActorPtr = LcHitResult.GetActor();
+			Function_CalculateGrabLocationAndRotation(_HeldedActorTargetPosition, _HeldedActorTargetRotation);
+			M_PhysicHandleComponentPtr->GrabComponentAtLocationWithRotation(LcHitResult.GetComponent(), NAME_None, _HeldedActorTargetPosition, _HeldedActorTargetRotation);
+
+			/// TO DO : Make so that while helding the actor, it changes to a "ghost" material so the player can see trought
+			// apply ghost material to mesh
+			// how do i acess to the mesh component? cause it may be any physic actor right? maybe a custom actor class, maybe i just put a static mesh into the world and set physics on
+		}
+	}
+	
+	DrawDebugDirectionalArrow(GetWorld(), LcStart, LcEnd, 300, FColor::Yellow, false, 3, 0, 1);
+}
+
+void AJumpStartCharacter::Function_HeldPhysicActor()
+{
+	Function_CalculateGrabLocationAndRotation(_HeldedActorTargetPosition, _HeldedActorTargetRotation);
+	M_PhysicHandleComponentPtr->SetTargetLocationAndRotation(_HeldedActorTargetPosition, _HeldedActorTargetRotation);
+}
+
+void AJumpStartCharacter::Function_ReleaseCurrentHeldedPhysicActor(AActor*& OutActorPtr)
+{
+}
+
+void AJumpStartCharacter::Function_CalculateGrabLocationAndRotation(FVector& OutPosition, FRotator& OutRotation)
+{
+	// calculate target rotation
+	OutRotation = GetControlRotation();
+	// calculate target position
+	OutPosition = M_Camera_Ptr->GetComponentLocation() + (GetControlRotation().Vector() * _HeldActorPositionOffset);
+
+	// >Debug
+	DrawDebugSphere(GetWorld(), _HeldedActorTargetPosition, 10, 3, FColor::Yellow, false, -1, 1, 1);
+	DrawDebugDirectionalArrow(GetWorld(), M_Camera_Ptr->GetComponentLocation(), _HeldedActorTargetPosition, 100, FColor::Yellow, false, -1, 1, 0.5f);
+}
+
 // Called every frame
 void AJumpStartCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	//M_JSMovementCompPtr->Function_StartClimb(); <- insted maybe should bind this to player give movement input or a manual input
-
+	if (_HeldedPhysicActorPtr) { Function_HeldPhysicActor(); }
+	Function_HeldPhysicActor();
 }
 void AJumpStartCharacter::Function_MoveSimple(const FInputActionValue& InValue)
 {
