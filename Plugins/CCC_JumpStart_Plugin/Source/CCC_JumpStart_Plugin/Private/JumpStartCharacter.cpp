@@ -36,8 +36,9 @@ AJumpStartCharacter::AJumpStartCharacter(const FObjectInitializer& ObjectInitial
 	M_SpringArm_Ptr = CreateDefaultSubobject<USpringArmComponent>(TEXT("_QSSpringArmComponent"));
 	// Attach it
 	M_SpringArm_Ptr->SetupAttachment(RootComponent);
-	M_SpringArm_Ptr->SocketOffset = FVector(0, 0, _FirstPersonSpringArmVerticalOffset);
+	//M_SpringArm_Ptr->SocketOffset = FVector(0, 0, _FirstPersonSpringArmVerticalOffset);
 	//M_SpringArm_Ptr->TargetArmLength = _ThirdPersonSpringArmLenght;
+	M_SpringArm_Ptr->SetRelativeLocation(FVector(0, 0, _FirstPersonSpringArmVerticalOffset), false, nullptr);
 
 	// Initialize Camera
 	M_Camera_Ptr = CreateDefaultSubobject<UCameraComponent>(TEXT("_JSCameraComponent"));
@@ -69,6 +70,19 @@ void AJumpStartCharacter::PostInitializeComponents()
 void AJumpStartCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	FString LcCompTG;
+	switch (M_PhysicHandleComponentPtr->PrimaryComponentTick.TickGroup)
+	{
+	case TG_PrePhysics:      LcCompTG = TEXT("TG_PrePhysics"); break;
+	case TG_StartPhysics:    LcCompTG = TEXT("TG_StartPhysics"); break;
+	case TG_DuringPhysics:   LcCompTG = TEXT("TG_DuringPhysics"); break;
+	case TG_PostPhysics:     LcCompTG = TEXT("TG_PostPhysics"); break;
+	case TG_LastDemotable:   LcCompTG = TEXT("TG_LastDemotable"); break;
+	case TG_NewlySpawned:    LcCompTG = TEXT("TG_NewlySpawned"); break;
+	case TG_MAX:             LcCompTG = TEXT("TG_MAX"); break;
+	default:                 LcCompTG = TEXT("Unknown"); break;
+	}if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::White, "LcCompTG tickGroup : " + LcCompTG); }
 }
 
 void AJumpStartCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -92,6 +106,17 @@ void AJumpStartCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Triggered, this, &AJumpStartCharacter::Function_LookSimple);
 			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Completed, this, &AJumpStartCharacter::Function_LookSimple);
 			LcEIC->BindAction(_Inputs.IA_Look, ETriggerEvent::Canceled, this, &AJumpStartCharacter::Function_LookSimple);
+		}
+
+		// Jump input
+		if (_Inputs.IA_Jump) {
+			LcEIC->BindAction(_Inputs.IA_Jump, ETriggerEvent::Started, this, &AJumpStartCharacter::Jump);
+			LcEIC->BindAction(_Inputs.IA_Jump, ETriggerEvent::Completed, this, &AJumpStartCharacter::StopJumping);
+			LcEIC->BindAction(_Inputs.IA_Jump, ETriggerEvent::Canceled, this, &AJumpStartCharacter::StopJumping);
+		}
+
+		if (_Inputs.IA_Dash) {
+			LcEIC->BindAction(_Inputs.IA_Dash, ETriggerEvent::Started, this, &AJumpStartCharacter::Function_DashSimlple);
 		}
 
 		// Grab Input
@@ -122,7 +147,8 @@ void AJumpStartCharacter::Function_SetFirstPersonControlSettings()
 	M_Camera_Ptr->bUsePawnControlRotation = false;
 	this->GetCharacterMovement()->bOrientRotationToMovement = false;
 
-	M_SpringArm_Ptr->SocketOffset = FVector(0, 0, _FirstPersonSpringArmVerticalOffset);
+	//M_SpringArm_Ptr->SocketOffset = FVector(0, 0, _FirstPersonSpringArmVerticalOffset);
+	M_SpringArm_Ptr->SetRelativeLocation(FVector(0, 0, 80));
 
 	if (GEngine) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("First Person Control Settings Applied"));
@@ -148,6 +174,13 @@ void AJumpStartCharacter::Function_InitializeJumpStartCharacter()
 
 void AJumpStartCharacter::Function_GrabPhysicsActor()
 {
+	if (M_PhysicHandleComponentPtr->GrabbedComponent != nullptr) {
+		AActor* LcActorPtr;
+		Function_ReleaseCurrentHeldedPhysicActor(LcActorPtr);
+		return;
+	}
+
+
 	FVector LcStart = M_Camera_Ptr->GetComponentLocation();
 	FVector LcEnd = LcStart + (GetControlRotation().Vector() * _POVTraceLenght);
 	FQuat LcQuat = FQuat::Identity;
@@ -163,26 +196,43 @@ void AJumpStartCharacter::Function_GrabPhysicsActor()
 		if (LcHitResult.Component->IsSimulatingPhysics()) {
 			// Get the actor that owns the component that was hit and set it as ref
 			_HeldedPhysicActorPtr = LcHitResult.GetActor();
+
 			Function_CalculateGrabLocationAndRotation(_HeldedActorTargetPosition, _HeldedActorTargetRotation);
-			M_PhysicHandleComponentPtr->GrabComponentAtLocationWithRotation(LcHitResult.GetComponent(), NAME_None, _HeldedActorTargetPosition, _HeldedActorTargetRotation);
+			FVector LcActorLocation = LcHitResult.GetActor()->GetActorLocation();
+			M_PhysicHandleComponentPtr->GrabComponentAtLocationWithRotation(LcHitResult.GetComponent(), NAME_None, LcHitResult.GetActor()->GetActorLocation(), _HeldedActorTargetRotation);
 
 			/// TO DO : Make so that while helding the actor, it changes to a "ghost" material so the player can see trought
 			// apply ghost material to mesh
 			// how do i acess to the mesh component? cause it may be any physic actor right? maybe a custom actor class, maybe i just put a static mesh into the world and set physics on
 		}
 	}
-	
-	DrawDebugDirectionalArrow(GetWorld(), LcStart, LcEnd, 300, FColor::Yellow, false, 3, 0, 1);
+	if (_bShowDebugDraws) {
+		DrawDebugDirectionalArrow(GetWorld(), LcStart, LcEnd, 300, FColor::Yellow, false, 3, 0, 1);
+	}
 }
 
 void AJumpStartCharacter::Function_HeldPhysicActor()
 {
 	Function_CalculateGrabLocationAndRotation(_HeldedActorTargetPosition, _HeldedActorTargetRotation);
 	M_PhysicHandleComponentPtr->SetTargetLocationAndRotation(_HeldedActorTargetPosition, _HeldedActorTargetRotation);
+	
+	if (M_PhysicHandleComponentPtr->GrabbedComponent != nullptr) {
+
+		if (_bShowDebugDraws)  {
+			FVector _HeldedCompLocation = M_PhysicHandleComponentPtr->GetGrabbedComponent()->GetComponentLocation();
+			DrawDebugSphere(GetWorld(), _HeldedCompLocation, 2.5f, 3, FColor::Purple, false, -1, 1, 0.2f);
+			DrawDebugSphere(GetWorld(), _HeldedPhysicActorPtr->GetActorLocation(), 1, 3, FColor::Blue, false, -1, 1, 0.2f);
+		}
+		if (_bShowDebugDraws) {
+			DrawDebugSphere(GetWorld(), _HeldedActorTargetPosition, 5, 3, FColor::Magenta, false, -1, 1, 0.5);
+		}
+	}
+	
 }
 
 void AJumpStartCharacter::Function_ReleaseCurrentHeldedPhysicActor(AActor*& OutActorPtr)
 {
+	M_PhysicHandleComponentPtr->ReleaseComponent();
 }
 
 void AJumpStartCharacter::Function_CalculateGrabLocationAndRotation(FVector& OutPosition, FRotator& OutRotation)
@@ -193,8 +243,9 @@ void AJumpStartCharacter::Function_CalculateGrabLocationAndRotation(FVector& Out
 	OutPosition = M_Camera_Ptr->GetComponentLocation() + (GetControlRotation().Vector() * _HeldActorPositionOffset);
 
 	// >Debug
-	DrawDebugSphere(GetWorld(), _HeldedActorTargetPosition, 10, 3, FColor::Yellow, false, -1, 1, 1);
-	DrawDebugDirectionalArrow(GetWorld(), M_Camera_Ptr->GetComponentLocation(), _HeldedActorTargetPosition, 100, FColor::Yellow, false, -1, 1, 0.5f);
+	if (_bShowDebugDraws) {
+		DrawDebugDirectionalArrow(GetWorld(), M_Camera_Ptr->GetComponentLocation(), OutPosition, 100, FColor::Yellow, false, -1, 0, 0.5f);
+	}
 }
 
 // Called every frame
@@ -252,9 +303,21 @@ void AJumpStartCharacter::Function_LookSimple(const FInputActionValue& InValue)
 		if (LcInVector2DValue.X != 0) { AddControllerYawInput(L_LookVector.X); }
 
 		// Apply Pitch (Look up/down)
-		if (LcInVector2DValue.Y != 0) { if (_bIsLookPitchInverted) { L_LookVector.Y = -L_LookVector.Y; } }
+		if (LcInVector2DValue.Y != 0) { if (_bIsLookPitchInverted == false) { L_LookVector.Y = -L_LookVector.Y; } }
 		AddControllerPitchInput(L_LookVector.Y);
 	}
+}
+
+void AJumpStartCharacter::Function_DashSimlple()
+{
+	FVector LcDirection = M_JSMovementCompPtr->GetLastInputVector();
+	FVector LcDashDirection = FVector(LcDirection.X, LcDirection.Y, 0.0f);
+	M_JSMovementCompPtr->Function_StartDash(LcDashDirection);
+}
+
+void AJumpStartCharacter::Function_DashStop()
+{
+	M_JSMovementCompPtr->Function_ForceStopDash();
 }
 
 void AJumpStartCharacter::Function_TraceFromPOV()
@@ -289,7 +352,7 @@ void AJumpStartCharacter::Function_TraceFromPOV()
 	);
 	// Debug Draw
 	if (L_bHit) {
-		if (M_DebugMode && M_ShowDebugDraws) {
+		if (_bShowDebugDraws) {
 			// True
 			DrawDebugSphere(
 				GetWorld(),
@@ -311,7 +374,7 @@ void AJumpStartCharacter::Function_TraceFromPOV()
 	}
 	else
 	{
-		if (M_DebugMode && M_ShowDebugDraws){
+		if ( _bShowDebugDraws){
 			DrawDebugSphere(
 				GetWorld(),
 				L_TraceEnd,

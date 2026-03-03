@@ -45,6 +45,9 @@ struct FQuickStartInputs
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UInputAction* IA_SecondaryAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UInputAction* IA_Dash;
 };
 
 
@@ -71,7 +74,7 @@ protected:
 	bool _AutoInit = true;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Settings|Third Person")
-	float _ThirdPersonSpringArmLenght = 0;
+	float _ThirdPersonSpringArmLenght = 900.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Settings|Third Person")
 	bool _CanStrafeInThirdPerson = false;
@@ -80,7 +83,7 @@ protected:
 	E_POV _InitialPOV = E_POV::First;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Settings|First Person")
-	float _FirstPersonSpringArmVerticalOffset;
+	float _FirstPersonSpringArmVerticalOffset = 80.0f;
 
 	// Character Components...
 
@@ -113,8 +116,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "[ JumpStart Run Time values ]")
 	FHitResult M_POVTracehitResult;
 
-	UPROPERTY()
-	bool _bIsLookPitchInverted = false;
+	UPROPERTY(EditAnywhere, Category = "[ JumpStart Parameters ]|Settings")
+	bool _bIsLookPitchInverted = true;
 
 	UPROPERTY()
 	float _LookSensitivity = 1;
@@ -136,7 +139,7 @@ protected:
 	FRotator _HeldedActorTargetRotation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "[ JumpStart Parameters ]|Helpers")
-	bool M_ShowDebugDraws; bool M_ShowDebugMessage; bool M_DebugMode;
+	bool _bShowDebugDraws;
 
 
 public:
@@ -204,9 +207,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]", meta = (ToolTip = "A single node that handles a simple look behavior. \n(Rotates the SpringArm component of this character based on the player input received)"))
 	virtual void Function_LookSimple(const FInputActionValue& InValue);
 
+	// Created on 03-Mar-2026
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]")
+	virtual void Function_DashSimlple();
+
+	// Created on 03-Mar-2026
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]")
+	virtual void Function_DashStop();
+
 	// Trace from center of camera
 	UFUNCTION(BlueprintCallable, Category = "[ JumpStart Character ]", meta = (ToolTip = "Traces from center of screen/camera"))
 	virtual void Function_TraceFromPOV();
 	/// TO DO ?? : Make another method equal to the previus but that acepts parameters instead of use character parameters;
-
 };

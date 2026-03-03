@@ -55,16 +55,26 @@ struct  FDashParams
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly)
-	float DashDuration = 0.5f;
+	float DashDuration = 0.25f;
 
 	UPROPERTY(EditDefaultsOnly)
-	float DashDistance = 100;
+	float DashDistance = 300.0f;
 
 	UPROPERTY(EditDefaultsOnly)
 	bool bDashCanChangeDirection = false;
 
 	UPROPERTY(EditDefaultsOnly)
 	bool bDashIgnoresGravity = true;
+
+	/*
+	* if true the dash is active till be forced to stop;
+	* if true the dash velocity is decided by the DashSpeed (FDashParams.DashSpeed):
+	*/
+	UPROPERTY(EditDefaultsOnly)
+	bool bDashWhileHoldingInput = false;
+
+	UPROPERTY(EditDefaultsOnly)
+	float DashSpeed = 900.0f;
 };
 
 
@@ -133,6 +143,7 @@ protected:
 	bool bIsDoingDash;
 	float DashElapsedTime;
 	FVector DashDirection;
+	float _DashSpeed;
 
 	UPROPERTY(EditAnywhere, Category = "[ JumpStart Propertys ]|Debug")
 	bool bDrawDebug;
@@ -182,8 +193,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Dash")
 	virtual void Function_SetDashParameters(FDashParams InParams);
 
+	// Created on 22-Fev-2026
 	/*
-	* Created on 22-Fev-2026
+	* CanChange Dash Direction ?
+	* If false uses the input vector parameter;
+	* If true uses the last input read;
 	*/
 	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Dash")
 	void Function_StartDash(FVector InDirection);
@@ -200,6 +214,10 @@ protected:
 	virtual void Function_Dash(float InDeltaTime);
 
 public:
+	// created 03-Mar-2026
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Dash")
+	virtual void Function_ForceStopDash();
+
 	/*
 	* Added on 18-Fev-2026
 	*/
@@ -207,3 +225,9 @@ public:
 	void Function_SetCapsuleRadiusRefValue(float InValue);
 
 };
+
+/// TO DO:
+/// currently its possible to spam the dash, add a way of limit that??
+
+/// KNOWN BUGS
+/// Start Dash right after Start Jump seems to stop movement (mid air);

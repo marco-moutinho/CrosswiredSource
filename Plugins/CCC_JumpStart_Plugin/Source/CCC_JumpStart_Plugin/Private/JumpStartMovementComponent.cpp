@@ -226,17 +226,46 @@ void UJumpStartMovementComponent::Function_Dash(float InDeltaTime)
 
 	FVector LcDirection;
 
-	if (DashParams.bDashCanChangeDirection == false) {  LcDirection = GetLastInputVector(); }
+	// case can't change direction while perform a dash
+	if (DashParams.bDashCanChangeDirection == true) {  LcDirection = GetLastInputVector(); }
+
+	// case it can change direction while perform a dash
 	else { LcDirection = DashDirection; }
-	// Known "Bug" - If DashDirection is ZERO the character just stands still
+
+	// cancel dash if LcDirection is ZERO
+	if (LcDirection.GetSafeNormal() == FVector::Zero()) {
+		this->Function_StopDash();
+		return;
+	}
 	
-	FVector LcDelta = LcDirection.GetSafeNormal() * (DashParams.DashDistance / DashParams.DashDuration);
+	// Known "BUG" - If DashDirection is ZERO the character just stands still
+	// it can be a feature actualy right?
+	
+	// create a delta vector
+	FVector LcDelta;
+
+	// case dash has manual duration
+	if (DashParams.bDashWhileHoldingInput == true) {
+		LcDelta = LcDirection.GetSafeNormal() * _DashSpeed;
+	}
+
+	// case dash has auto duration
+	else if (DashParams.bDashWhileHoldingInput == false) {
+		LcDelta = LcDirection.GetSafeNormal() * (DashParams.DashDistance / DashParams.DashDuration);
+	}
+	
+	// Make it frame rate independent
 	LcDelta *= InDeltaTime;
 
 	FHitResult LcHitResult;
 
 	// Apply movement
 	SafeMoveUpdatedComponent(LcDelta, UpdatedComponent->GetComponentQuat(), true, LcHitResult);
+}
+
+void UJumpStartMovementComponent::Function_ForceStopDash()
+{
+	this->Function_StopDash();
 }
 
 void UJumpStartMovementComponent::Function_SetCapsuleRadiusRefValue(float InValue)
