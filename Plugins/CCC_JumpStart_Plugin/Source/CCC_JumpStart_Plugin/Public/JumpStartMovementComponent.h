@@ -58,13 +58,18 @@ struct  FDashParams
 	float DashDuration = 0.25f;
 
 	UPROPERTY(EditDefaultsOnly)
-	float DashDistance = 300.0f;
+	float DashDistance = 600.0f;
 
 	UPROPERTY(EditDefaultsOnly)
 	bool bDashCanChangeDirection = false;
 
+	// TO DO : not yet implemented
 	UPROPERTY(EditDefaultsOnly)
 	bool bDashIgnoresGravity = true;
+
+	// TO DO : not yet implemented
+	UPROPERTY(EditDefaultsOnly)
+	bool bPreserveVelocityAfterDash = true;
 
 	/*
 	* if true the dash is active till be forced to stop;
@@ -73,8 +78,15 @@ struct  FDashParams
 	UPROPERTY(EditDefaultsOnly)
 	bool bDashWhileHoldingInput = false;
 
+	// use DashSpeed on _DashSpeed if bDashWhileHoldingInput is true and un altered
 	UPROPERTY(EditDefaultsOnly)
 	float DashSpeed = 900.0f;
+
+	// to implement this feature
+	UPROPERTY(EditDefaultsOnly)
+	float DashCooldown = 0.0f;
+
+	/// Add a bool to : on hit during dash -> stop dash??
 };
 
 
@@ -95,6 +107,8 @@ public:
 	* Added on 17-Fev-2026
 	*/
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
+
+	virtual void BeginPlay() override;
 
 protected:
 	// vertical speed along the wall
@@ -127,9 +141,13 @@ protected:
 	FDashParams DashParams;
 
 	// Runtime...
+	//...  input
 	UPROPERTY(BlueprintReadWrite)
 	FVector2D InputMoveValue; // <- Need to bind from Character to this
 
+	// basic movement
+	float _WalkSpeed;
+	float _SprintSpeed;
 
 	// climb
 	bool bCanClimb;
@@ -143,7 +161,12 @@ protected:
 	bool bIsDoingDash;
 	float DashElapsedTime;
 	FVector DashDirection;
+	// _DashSpeed exist so it can be diffrent / modified run time without have to touch the original on the structure, so it can be used like ability modifier and still have a ref to the original value
 	float _DashSpeed;
+	float _DashCalculatedSpeed;
+	// this var exist so it can be modified rto without touch the cooldown on the structure, so it can be easly reset to its default
+	float _DashCooldownRTO;
+	float _DashCooldownElapsedTime;
 
 	UPROPERTY(EditAnywhere, Category = "[ JumpStart Propertys ]|Debug")
 	bool bDrawDebug;
@@ -211,12 +234,19 @@ protected:
 	/*
 	* Created on 22-Fev-2026
 	*/
-	virtual void Function_Dash(float InDeltaTime);
+	virtual void Function_PhysDash(float InDeltaTime, int32 Iterations);
 
 public:
 	// created 03-Mar-2026
 	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Dash")
 	virtual void Function_ForceStopDash();
+
+	// created on 04-Mar-2026
+	/*
+	* this changes the value of _DashSpeed not the FDashParams.DashSpeed
+	*/
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Dash")
+	virtual void Function_SetDashSpeed(float inValue);
 
 	/*
 	* Added on 18-Fev-2026

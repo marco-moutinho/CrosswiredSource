@@ -115,8 +115,11 @@ void AJumpStartCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 			LcEIC->BindAction(_Inputs.IA_Jump, ETriggerEvent::Canceled, this, &AJumpStartCharacter::StopJumping);
 		}
 
+		// Dash Input
 		if (_Inputs.IA_Dash) {
 			LcEIC->BindAction(_Inputs.IA_Dash, ETriggerEvent::Started, this, &AJumpStartCharacter::Function_DashSimlple);
+			LcEIC->BindAction(_Inputs.IA_Dash, ETriggerEvent::Completed, this, &AJumpStartCharacter::Function_DashStop);
+			LcEIC->BindAction(_Inputs.IA_Dash, ETriggerEvent::Canceled, this, &AJumpStartCharacter::Function_DashStop);
 		}
 
 		// Grab Input

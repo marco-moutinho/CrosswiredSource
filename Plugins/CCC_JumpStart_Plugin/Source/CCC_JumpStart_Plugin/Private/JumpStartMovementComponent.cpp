@@ -19,11 +19,18 @@ void UJumpStartMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 
 	// Handle Dash mode
 	if (CustomMovementMode == (uint8)EJumpStartMovementModes::CMM_Dash && bCanDash) {
-		Function_Dash(DeltaTime);
+		Function_PhysDash(DeltaTime, Iterations);
 	}
 
 	// Otherwise fallback to normal custom physics
 	Super::PhysCustom(DeltaTime, Iterations); // PhysCustom is called every physics tick. 
+}
+
+void UJumpStartMovementComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	_DashSpeed = DashParams.DashSpeed;
 }
 
 void UJumpStartMovementComponent::Function_ReadOwnerMovementInput(FVector2D InVector2D)
@@ -198,6 +205,16 @@ void UJumpStartMovementComponent::Function_StartDash(FVector InDirection)
 	DashElapsedTime = 0;
 	bIsDoingDash = true;
 
+	if (DashParams.bDashWhileHoldingInput == true) {
+		_DashCalculatedSpeed = _DashSpeed;
+	}
+	else if (DashParams.bDashWhileHoldingInput == false) {
+		_DashCalculatedSpeed = (DashParams.DashDistance / DashParams.DashDuration);
+	}
+	// Allow to move to the calculate Dash speed
+	MaxCustomMovementSpeed = _DashCalculatedSpeed;
+
+	// Set movement mode to Dash
 	SetMovementMode(MOVE_Custom, (uint8)EJumpStartMovementModes::CMM_Dash);
 }
 
@@ -205,10 +222,18 @@ void UJumpStartMovementComponent::Function_StopDash()
 {
 	bIsDoingDash = false;
 
+	if (DashParams.bPreserveVelocityAfterDash == false) {
+		Velocity = FVector::Zero();
+	}
+	else
+	{
+		if (IsMovingOnGround()) {
+			Velocity = Velocity.GetSafeNormal() * MaxWalkSpeed;
+		}
+	}
+
 	// On Stop doing Dash check if is grounded to set next movement mode to walk or falling
-	FFindFloorResult LcFindFloorResult;
-	FindFloor(PawnOwner->GetActorLocation(), LcFindFloorResult, false);
-	if (LcFindFloorResult.bBlockingHit) {
+	if (IsMovingOnGround()) {
 		SetMovementMode(MOVE_Walking);
 	}
 	else {
@@ -216,7 +241,7 @@ void UJumpStartMovementComponent::Function_StopDash()
 	}
 }
 
-void UJumpStartMovementComponent::Function_Dash(float InDeltaTime)
+void UJumpStartMovementComponent::Function_PhysDash(float InDeltaTime, int32 Iterations)
 {
 	DashElapsedTime += InDeltaTime;
 	if (DashElapsedTime >= DashParams.DashDuration) {
@@ -233,39 +258,42 @@ void UJumpStartMovementComponent::Function_Dash(float InDeltaTime)
 	else { LcDirection = DashDirection; }
 
 	// cancel dash if LcDirection is ZERO
-	if (LcDirection.GetSafeNormal() == FVector::Zero()) {
+	if (LcDirection.IsNearlyZero()) {
 		this->Function_StopDash();
 		return;
 	}
-	
-	// Known "BUG" - If DashDirection is ZERO the character just stands still
-	// it can be a feature actualy right?
-	
-	// create a delta vector
-	FVector LcDelta;
 
-	// case dash has manual duration
-	if (DashParams.bDashWhileHoldingInput == true) {
-		LcDelta = LcDirection.GetSafeNormal() * _DashSpeed;
+	// normalize direction
+	LcDirection = LcDirection.GetSafeNormal();
+	// set velocity (internal variable)
+	Velocity = LcDirection * _DashCalculatedSpeed;
+
+	// create a delta vector // Make it frame rate independent
+	FVector LcDelta = Velocity * InDeltaTime;
+	FHitResult LcDashHit;
+	SafeMoveUpdatedComponent(LcDelta, UpdatedComponent->GetComponentQuat(), true, LcDashHit);
+
+	// resolve if it collide
+	if (LcDashHit.IsValidBlockingHit()) {
+		/// Add a bool to : on hit during dash -> stop dash??
+		SlideAlongSurface(LcDelta, 1.0f - LcDashHit.Time, LcDashHit.Normal, LcDashHit, true);
 	}
 
-	// case dash has auto duration
-	else if (DashParams.bDashWhileHoldingInput == false) {
-		LcDelta = LcDirection.GetSafeNormal() * (DashParams.DashDistance / DashParams.DashDuration);
-	}
-	
-	// Make it frame rate independent
-	LcDelta *= InDeltaTime;
-
-	FHitResult LcHitResult;
-
-	// Apply movement
-	SafeMoveUpdatedComponent(LcDelta, UpdatedComponent->GetComponentQuat(), true, LcHitResult);
+	/*FString _msg = TEXT("");
+	if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 0.2f, FColor::Green,
+		"_DashSpeed: " + FString::SanitizeFloat(_DashSpeed) + " | " +
+		"_DashCalculatedSpeed: " + FString::SanitizeFloat(_DashCalculatedSpeed) + " / " +
+		"Velocity: " + FString::SanitizeFloat(Velocity.Length())); }*/
 }
 
 void UJumpStartMovementComponent::Function_ForceStopDash()
 {
 	this->Function_StopDash();
+}
+
+void UJumpStartMovementComponent::Function_SetDashSpeed(float inValue)
+{
+	_DashSpeed = inValue;
 }
 
 void UJumpStartMovementComponent::Function_SetCapsuleRadiusRefValue(float InValue)
