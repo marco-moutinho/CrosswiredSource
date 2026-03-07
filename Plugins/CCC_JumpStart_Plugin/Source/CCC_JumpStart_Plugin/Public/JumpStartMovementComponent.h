@@ -16,10 +16,26 @@ enum class EJumpStartMovementModes : uint8 {
 	CMM_Dash  UMETA(DisplayName = "Dash")
 };
 
+/*
+* created on 06-Mar-2026
+*/
+UENUM(BlueprintType)
+enum class EClimbChecking : uint8 {
+	CM_ByPlayerInput,
+	CM_Constant,
+	CM_WhileOnAir,
+	CM_WhileJumping, // TO DO
+	CM_WhileFalling // TO DO
+};
+
 USTRUCT(BlueprintType)
 struct FClimbAngleParams
 {
 	GENERATED_BODY()
+
+	// relative to the player vertical vector -> used to start climb
+	UPROPERTY(EditDefaultsOnly)
+	float MinClimbSurfaceDegrees;
 
 	// Angle in Degrees
 	UPROPERTY(EditDefaultsOnly)
@@ -44,6 +60,59 @@ struct FClimbAngleParams
 	// Angle in Degrees
 	UPROPERTY(EditDefaultsOnly)
 	float MaxLaterallyClimbAngle;
+};
+
+// added on 06-Mar-2026
+USTRUCT(BlueprintType)
+struct FClimbAutomationParams
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	EClimbChecking CheckingMode = EClimbChecking::CM_Constant;
+
+	UPROPERTY(EditDefaultsOnly)
+	bool bAutoStartClimb = false;
+};
+
+USTRUCT(BlueprintType)
+struct FClimbSpeedParams {
+	GENERATED_BODY()
+
+	// vertical speed along the wall
+	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
+	float ClimbSpeed = 300;
+
+	// Smoothing speed for input velocity
+	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
+	float ClimbAcceleration = 100;
+};
+
+// added on 06-Mar-2026
+USTRUCT(BlueprintType)
+struct FClimbParams {
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	FClimbAutomationParams AutomationParams;
+
+	UPROPERTY(EditDefaultsOnly)
+	FClimbAngleParams AnglesParams;
+
+	UPROPERTY(EditDefaultsOnly)
+	FClimbSpeedParams SpeedParams;
+
+	// this should probably be calculated based on CharacterCapsule Height
+	UPROPERTY(EditDefaultsOnly)
+	float ClimbTraceForWallVerticalOffset = 60;
+
+	// Forward distance to detect wall // this should probably be calculated based on CharacterCapsule Radius
+	UPROPERTY(EditDefaultsOnly)
+	float ClimbTraceDistance = 60;
+
+	// How far from the wall the character capsule should stay, this is considering the capsule radius, so write only the distance between the surface and the "surface"/"skin" capsule 
+	UPROPERTY(EditDefaultsOnly)
+	float ClimbWallOffset = 1;
 };
 
 /*
@@ -110,32 +179,12 @@ public:
 
 	virtual void BeginPlay() override;
 
+	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
+
 protected:
-	// vertical speed along the wall
-	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb") 
-	float ClimbSpeed = 300;
 
 	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
-	float ClimbTraceForWallVerticalOffset = 60;
-
-	// Smoothing speed for input velocity
-	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
-	float ClimbAcceleration = 100;
-
-	// Forward distance to detect wall
-	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
-	float ClimbTraceDistance = 60;
-
-	// How far from the wall the character capsule should stay, this is considering the capsule radius, so write only the distance between the surface and the "surface"/"skin" capsule 
-	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
-	float ClimbWallOffset = 1;
-
-	// Reject floors, only vertical-ish surfaces
-	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
-	float MinClimbSurfaceDegrees = 0;
-
-	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Climb")
-	FClimbAngleParams ClimbAngleParams;
+	FClimbParams _ClimbParams;
 
 	UPROPERTY(EditDefaultsOnly, Category = "[ JumpStart Propertys ]|Dash")
 	FDashParams DashParams;
@@ -150,6 +199,7 @@ protected:
 	float _SprintSpeed;
 
 	// climb
+	bool _bCheckForClimbableSurface;
 	bool bCanClimb;
 	float CapsuleRadius;
 	bool bIsClimbing;
@@ -181,13 +231,13 @@ public:
 	/*
 	* 22-Fev-2026
 	*/
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "[ JumpStart UFunctions ]|Climb")
 	virtual void Function_SetIfCanClimb(bool InBool);
 
 	/*
 	* Added on 17-Fev-2026
 	*/
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	virtual void Function_StartClimb();
 
 	/*
@@ -196,12 +246,25 @@ public:
 	UFUNCTION()
 	virtual void Function_StopClimb();
 
+	/*
+	* inValue == true : It performs the checking for a climbable surface on each tick;
+	* inValue == false : only performs the checking on player input; 
+	* added on 06-Mar-2026
+	*/
+	UFUNCTION(BlueprintCallable)
+	virtual void Function_SwitchBetweenAutoOrManualClimbableSurface(const EClimbChecking InValue);
+
 protected:
 	/*
 	* Core climb physics, called inside PhysCustom()
 	* Added on 17-Fev-2026
 	*/
 	void Function_PhysClimb(float DeltaTime, int32 Iterations);
+
+	/*
+	* added on 06-mar-2026
+	*/
+	virtual void Function_FilterWhenShouldCheckForClimbableSurface(const EClimbChecking inValue);
 
 	/*
 	* Detect if a climbable wall is in front

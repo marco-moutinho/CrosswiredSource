@@ -11,7 +11,7 @@ UJumpStartMovementComponent::UJumpStartMovementComponent()
 
 void UJumpStartMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 {
-	// handle Climb mode
+	// handle while on Climb mode
 	if (CustomMovementMode == (uint8)EJumpStartMovementModes::CMM_Climb && bCanClimb) {
 		Function_PhysClimb(DeltaTime, Iterations);
 		return;
@@ -31,6 +31,16 @@ void UJumpStartMovementComponent::BeginPlay()
 	Super::BeginPlay();
 
 	_DashSpeed = DashParams.DashSpeed;
+}
+
+void UJumpStartMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity)
+{
+	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+
+	// how should i check for a climbable surface if not manual ( by player input);
+	if (_ClimbParams.AutomationParams.CheckingMode != EClimbChecking::CM_ByPlayerInput) {
+		Function_FilterWhenShouldCheckForClimbableSurface(_ClimbParams.AutomationParams.CheckingMode);
+	}
 }
 
 void UJumpStartMovementComponent::Function_ReadOwnerMovementInput(FVector2D InVector2D)
@@ -64,6 +74,7 @@ void UJumpStartMovementComponent::Function_StartClimb()
 		/// FUTURE : Idk maybe i want to preserve some momentum, mainly in slippery surfaces
 		Velocity = FVector::ZeroVector;
 		
+
 		// Finish
 		return;
 	}
@@ -80,6 +91,11 @@ void UJumpStartMovementComponent::Function_StopClimb()
 	SetMovementMode(MOVE_Falling);
 }
 
+void UJumpStartMovementComponent::Function_SwitchBetweenAutoOrManualClimbableSurface(const EClimbChecking InValue)
+{
+	_ClimbParams.AutomationParams.CheckingMode = InValue;
+}
+
 void UJumpStartMovementComponent::Function_PhysClimb(float DeltaTime, int32 Iterations)
 {
 	//  Step 0 :Must have a valid Owner
@@ -90,9 +106,9 @@ void UJumpStartMovementComponent::Function_PhysClimb(float DeltaTime, int32 Iter
 	//FVector Start = PawnOwner->GetActorLocation();
 	//FVector End = Start + (-CurrentClimbNormal * ClimbTraceDistance); // trace backward to stick to wall
 
-	FVector LcStartOffset = (CapsuleRadius * PawnOwner->GetActorForwardVector()) + (PawnOwner->GetActorUpVector() * ClimbTraceForWallVerticalOffset);
+	FVector LcStartOffset = (CapsuleRadius * PawnOwner->GetActorForwardVector()) + (PawnOwner->GetActorUpVector() * _ClimbParams.ClimbTraceForWallVerticalOffset);
 	FVector LcStart = PawnOwner->GetActorLocation() + LcStartOffset;
-	FVector LcEnd = LcStart - CurrentClimbNormal * ClimbTraceDistance; // trace backward to stick to wall
+	FVector LcEnd = LcStart - CurrentClimbNormal * _ClimbParams.ClimbTraceDistance; // trace backward to stick to wall
 
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(PawnOwner);
@@ -121,7 +137,7 @@ void UJumpStartMovementComponent::Function_PhysClimb(float DeltaTime, int32 Iter
 	float DistanceAlongNormal = FVector::DotProduct(ToWall, WallNormal);
 
 	// Compute snapped location relative to component
-	FVector SnappedLocation = ComponentLocation - WallNormal * (DistanceAlongNormal - ClimbWallOffset);
+	FVector SnappedLocation = ComponentLocation - WallNormal * (DistanceAlongNormal - _ClimbParams.ClimbWallOffset);
 
 	// Keep Z the same if you want
 	SnappedLocation.Z = ComponentLocation.Z;
@@ -145,7 +161,7 @@ void UJumpStartMovementComponent::Function_PhysClimb(float DeltaTime, int32 Iter
 	FVector WallRight = FVector::CrossProduct( WallNormal, FVector::UpVector).GetSafeNormal();
 	FVector WallUp = FVector::UpVector;
 
-	FVector MoveDelta = WallRight * InputMoveValue.X * ClimbSpeed * DeltaTime + WallUp * InputMoveValue.Y * ClimbSpeed * DeltaTime;
+	FVector MoveDelta = WallRight * InputMoveValue.X * _ClimbParams.SpeedParams.ClimbSpeed * DeltaTime + WallUp * InputMoveValue.Y * _ClimbParams.SpeedParams.ClimbSpeed * DeltaTime;
 	FHitResult MoveHit;
 	SafeMoveUpdatedComponent(MoveDelta, UpdatedComponent->GetComponentQuat(), true, MoveHit);
 
@@ -155,16 +171,45 @@ void UJumpStartMovementComponent::Function_PhysClimb(float DeltaTime, int32 Iter
 	*/
 }
 
+// this will be called on PhysCustom
+void UJumpStartMovementComponent::Function_FilterWhenShouldCheckForClimbableSurface(const EClimbChecking inValue)
+{
+	switch (inValue)
+	{
+	case EClimbChecking::CM_Constant:
+		Function_StartClimb();
+		UE_LOG(LogTemp, Display, TEXT("Start Cimb on Constant!!"));
+		break;
+
+	case EClimbChecking::CM_WhileOnAir:
+		if (IsFalling() == true) {
+			Function_StartClimb();
+			break;
+		}
+	case EClimbChecking::CM_WhileJumping:
+		if (IsFalling() == true && Velocity.Y > 0) {
+			Function_StartClimb();
+			break;
+		}
+	case EClimbChecking::CM_WhileFalling:
+		if (IsFalling() == true && Velocity.Y < 0) {
+			Function_StartClimb();
+			break;
+		}
+	} // end switch
+
+}
+
 bool UJumpStartMovementComponent::Function_HasClimbableSurface(FHitResult& OutHit) const
 {
 	// Step 0 : Must have a valid character
 	if (!PawnOwner) { return false; }
 
 	// Step 1: Start and End of trace
-	FVector LcStartOffset = (CapsuleRadius * PawnOwner->GetActorForwardVector()) + (PawnOwner->GetActorUpVector() * ClimbTraceForWallVerticalOffset);
+	FVector LcStartOffset = (CapsuleRadius * PawnOwner->GetActorForwardVector()) + (PawnOwner->GetActorUpVector() * _ClimbParams.ClimbTraceForWallVerticalOffset);
 	FVector LcStart = PawnOwner->GetActorLocation() + LcStartOffset; // WIP + some vertical offset?!!
 	FVector LcForward = PawnOwner->GetActorForwardVector();
-	FVector LcEnd = LcStart + (LcForward * ClimbTraceDistance);
+	FVector LcEnd = LcStart + (LcForward * _ClimbParams.ClimbTraceDistance);
 
 	// Step 2: Collision parameters
 	FCollisionQueryParams LcCollisionQueryParams;
@@ -186,7 +231,7 @@ bool UJumpStartMovementComponent::Function_HasClimbableSurface(FHitResult& OutHi
 	// calculate angle of normal of the surface to check if the angle is climbable
 	FVector LcNormal = OutHit.ImpactNormal;
 	float LcSurfaceAngleInDegrees = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(LcNormal, FVector::UpVector)));
-	if (LcSurfaceAngleInDegrees < MinClimbSurfaceDegrees) // W I P : ADD || LcSurfaceAngleInDegrees > MAXClimbSurfaceDegrees
+	if (LcSurfaceAngleInDegrees < _ClimbParams.AnglesParams.MinClimbSurfaceDegrees) // W I P : ADD || LcSurfaceAngleInDegrees > MAXClimbSurfaceDegrees
 	{
 		return false;
 	}

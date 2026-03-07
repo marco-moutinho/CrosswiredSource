@@ -17,7 +17,7 @@ ANPCBase::ANPCBase()
 void ANPCBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	UE_LOG(LogTemp, Display, TEXT("Hello World - NPCBase"));
 }
 
 // Called every frame
