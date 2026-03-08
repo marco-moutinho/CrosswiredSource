@@ -18,4 +18,7 @@ public:
 	UBTTPatrolPath();
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+	UPROPERTY(EditAnywhere, Category = "[ MP_NPC ]", meta = (DisplayName = "DebugDraw Enabled?"))
+	bool _bDebugDraw = false;
 };

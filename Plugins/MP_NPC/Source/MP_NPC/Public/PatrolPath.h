@@ -60,5 +60,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Path ]|Debug|Directional Arrows")
 	FColor _EndDirectionalArrowColor = FColor::Red;
 
+public:
+	// added on 08-Mar-2026
+	UFUNCTION(BlueprintCallable, Category = "[ Path Function ]")
+	virtual APathPoint* Function_GetNextPathPoint(APathPoint* InCurrentPathPointptr);
 
+	// added on 08 - Mar - 2026
+	UFUNCTION()
+	virtual APathPoint* Function_GetFirstPathPoint();
 };

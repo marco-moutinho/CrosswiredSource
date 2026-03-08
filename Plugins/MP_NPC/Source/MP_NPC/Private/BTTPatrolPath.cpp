@@ -5,6 +5,7 @@
 
 #include "AIController.h"
 #include "PatrolPathComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 UBTTPatrolPath::UBTTPatrolPath()
 {
@@ -13,6 +14,7 @@ UBTTPatrolPath::UBTTPatrolPath()
 
 EBTNodeResult::Type UBTTPatrolPath::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+	UE_LOG(LogTemp, Display, TEXT("_> EBTNodeResult::Type UBTTPatrolPath::ExecuteTask()"));
 	// Get AiController
 	AAIController* LcAiControllerPtr = OwnerComp.GetAIOwner();
 
@@ -35,7 +37,7 @@ EBTNodeResult::Type UBTTPatrolPath::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	// by checking if pawn/NPC has the PatrolPathComponent - this component must return the path data
 	
 	// setp 1. try get component directly
-	const UPatrolPathComponent* LcPatrolPathComponentPtr = LcPawn->FindComponentByClass<UPatrolPathComponent>();
+	UPatrolPathComponent* LcPatrolPathComponentPtr = LcPawn->FindComponentByClass<UPatrolPathComponent>();
 
 	// step 2. checking if is valid
 	if (LcPatrolPathComponentPtr == nullptr) {
@@ -44,6 +46,15 @@ EBTNodeResult::Type UBTTPatrolPath::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	}
 
 	// step 3. extrat the path data
+	FVector LcLocation = LcPatrolPathComponentPtr->Function_AskForNextPathPointLocation();
 
-	return EBTNodeResult::Failed;
+	// step 4. Set blackboard key value
+	OwnerComp.GetBlackboardComponent()->SetValueAsVector(BlackboardKey.SelectedKeyName, LcLocation);
+
+	if (_bDebugDraw) {
+		DrawDebugSphere(GetWorld(), LcLocation, 30.0f, 6, FColor::Yellow, false, 6.0f, 1, 1);
+		DrawDebugDirectionalArrow(GetWorld(), LcLocation + FVector::UpVector * 600, LcLocation, 600, FColor::Yellow, false, 6, 1, 3);
+	}
+
+	return EBTNodeResult::Succeeded;
 }

@@ -4,6 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+
+#include "PatrolPath.h"
+#include "PathPoint.h"
+
 #include "PatrolPathComponent.generated.h"
 
 // created on 08-Mar-2026
@@ -28,6 +32,28 @@ public:
 	
 protected:
 	UPROPERTY(EditAnywhere, Category = "[ Path ]")
-	TMap<AActor*, float> _PathPatrolPoints;
+	TSoftObjectPtr<APatrolPath> _Pathptr;
+
+	UPROPERTY()
+	APathPoint* _TargetPathPointptr;
+
+public:
+	// added on 08 - Mar - 2026
+	/*
+	* This is important cause I need to set the first PathPoint ptr if not it will crash
+	*/
+	UFUNCTION()
+	virtual void Function_SetPath();
+
+	// added on 08 - Mar - 2026
+	/*
+	* Asks to the _Path (actor) for a pointer to the next APathPoint
+	*/
+	UFUNCTION()
+	virtual void Function_AskForNextPathPoint();
+
+	// added on 08 - Mar - 2026
+	UFUNCTION()
+	virtual FVector Function_AskForNextPathPointLocation();
 		
 };

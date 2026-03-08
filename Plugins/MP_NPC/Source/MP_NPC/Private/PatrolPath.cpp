@@ -74,3 +74,53 @@ bool APatrolPath::ShouldTickIfViewportsOnly() const
 {
 	return _bDebugDraw;
 }
+
+APathPoint* APatrolPath::Function_GetNextPathPoint(APathPoint* InCurrentPathPointptr)
+{
+	// first check for valid input
+	if (InCurrentPathPointptr == nullptr) { UE_LOG(LogTemp, Error, TEXT("InCurrentPathPointptr = nullptr")); return nullptr; }
+
+	// then check if that ptr exist on the array
+	if (_PathPoints.Contains(InCurrentPathPointptr)) {
+
+		// get its index
+		int32 LcIndexOfFoundPoint = _PathPoints.Find(InCurrentPathPointptr);
+
+		// then to know wich is the next PathPoint I have to have in acount if:
+		// Path Loops and or if current is the LastPoint,
+		// if it loops so next is the first, if not then next is the previous one
+
+		// check if it is the last
+		if (_PathPoints.Last() == _PathPoints[LcIndexOfFoundPoint]) {
+
+			// if so, if it loops
+			if (bLoops == true) {
+
+				// if so, so next is the first
+				return _PathPoints[0];
+			}
+			// if not, so next is the previous
+			else
+			{
+				return _PathPoints[LcIndexOfFoundPoint - 1];
+			}
+		}
+		// if is not the last, just return the PathPoint of the next index
+		else { return _PathPoints[LcIndexOfFoundPoint + 1]; }
+	}
+	else
+	{ 
+		UE_LOG(LogTemp, Error, TEXT("PatrolPath.cpp - any condition could be macthed"));
+		return nullptr;
+	}
+	
+}
+
+APathPoint* APatrolPath::Function_GetFirstPathPoint()
+{
+	if (_PathPoints[0] == nullptr) {
+		UE_LOG(LogTemp, Error, TEXT("PatrolPath.cpp - APatrolPath::Function_GetFirstPathPoint() - _PathPoints[0] = nullptr !!!"));
+		return nullptr;
+	}
+	return  _PathPoints[0];
+}
