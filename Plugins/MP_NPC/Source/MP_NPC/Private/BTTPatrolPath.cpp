@@ -41,12 +41,17 @@ EBTNodeResult::Type UBTTPatrolPath::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
 	// step 2. checking if is valid
 	if (LcPatrolPathComponentPtr == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("const UPatrolPathComponent* LcPatrolPathComponentPtr = nullptr"));
+		UE_LOG(LogTemp, Error, TEXT("_> EBTNodeResult::Type UBTTPatrolPath::ExecuteTask() - LcPatrolPathComponentPtr = nullptr"));
 		return EBTNodeResult::Failed;
 	}
 
 	// step 3. extrat the path data
 	FVector LcLocation = LcPatrolPathComponentPtr->Function_AskForNextPathPointLocation();
+
+	if (LcPatrolPathComponentPtr->Function_HasAValidPath() == false) {
+		UE_LOG(LogTemp, Error, TEXT("_> EBTNodeResult::Type UBTTPatrolPath::ExecuteTask() - if (LcPatrolPathComponentPtr->Function_HasAValidPath() == false)"));
+		return EBTNodeResult::Failed;
+	}
 
 	// step 4. Set blackboard key value
 	OwnerComp.GetBlackboardComponent()->SetValueAsVector(BlackboardKey.SelectedKeyName, LcLocation);

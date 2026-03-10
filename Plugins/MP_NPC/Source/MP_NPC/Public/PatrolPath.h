@@ -30,7 +30,7 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Path ]")
-	TArray<APathPoint*> _PathPoints;
+	TArray<APathPoint*> _PathPointsList;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "[ Path ]")
 	bool bLoops;
@@ -68,4 +68,10 @@ public:
 	// added on 08 - Mar - 2026
 	UFUNCTION()
 	virtual APathPoint* Function_GetFirstPathPoint();
+
+	// added on 10-Mar-2026
+	UFUNCTION()
+	virtual bool Function_IsPathValid();
+
+	/// TO DO : Add visual feedback to the "Game Designer" that the path is Invalid - like for exemple turn the PatrolPath Actor Red in invalid and Green if valid
 };

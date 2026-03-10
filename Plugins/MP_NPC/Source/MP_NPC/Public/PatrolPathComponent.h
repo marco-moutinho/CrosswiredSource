@@ -37,13 +37,21 @@ protected:
 	UPROPERTY()
 	APathPoint* _TargetPathPointptr;
 
+	UPROPERTY()
+	bool _bHasValidPath;
+
 public:
-	// added on 08 - Mar - 2026
+	// added on 10-Mar-2026
+	UFUNCTION(BlueprintCallable, Category = "[ Path Functions ]")
+	void Function_SetPath(APatrolPath* InPtr);
+
+	// added on 08-Mar-2026
+	// last change on 10-Mar-2026
 	/*
 	* This is important cause I need to set the first PathPoint ptr if not it will crash
 	*/
 	UFUNCTION()
-	virtual void Function_SetPath();
+	virtual void Function_StartPath();
 
 	// added on 08 - Mar - 2026
 	/*
@@ -55,5 +63,8 @@ public:
 	// added on 08 - Mar - 2026
 	UFUNCTION()
 	virtual FVector Function_AskForNextPathPointLocation();
-		
+	
+	// added on 10-Mar-2026
+	UFUNCTION()
+	bool Function_HasAValidPath();
 };
