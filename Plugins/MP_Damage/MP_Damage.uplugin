@@ -2,10 +2,10 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
-	"FriendlyName": "MP_Utilities",
+	"FriendlyName": "MP_Damage",
 	"Description": "",
 	"Category": "[ Jump Start Collection ]",
-	"CreatedBy": "",
+	"CreatedBy": "Marco Moutinho",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",
@@ -16,7 +16,7 @@
 	"Installed": false,
 	"Modules": [
 		{
-			"Name": "MP_Utilities",
+			"Name": "MP_Damage",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}

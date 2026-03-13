@@ -5,10 +5,11 @@
   "AccountID": "Google_106433459404876006135",
   "BranchID": "dv.branch.1",
   "BranchName": "main",
-  "CommitID": "dv.commit.5",
+  "CommitID": "dv.commit.6",
   "Paused": false,
   "ShouldDownload": false,
   "RepoName": "Crosswired",
   "ReadOnly": false,
-  "DigestMethod": "sha1"
+  "DigestMethod": "sha1",
+  "OrganizationTier": "INDIE"
 }
