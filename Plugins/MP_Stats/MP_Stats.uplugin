@@ -2,21 +2,21 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
-	"FriendlyName": "MP_Damage",
+	"FriendlyName": "MP_Stats",
 	"Description": "",
-	"Category": "[ Jump Start Collection ]",
-	"CreatedBy": "Marco Moutinho",
+	"Category": "Other",
+	"CreatedBy": "",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",
 	"SupportURL": "",
 	"CanContainContent": true,
-	"IsBetaVersion": true,
+	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
 	"Modules": [
 		{
-			"Name": "MP_Damage",
+			"Name": "MP_Stats",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}

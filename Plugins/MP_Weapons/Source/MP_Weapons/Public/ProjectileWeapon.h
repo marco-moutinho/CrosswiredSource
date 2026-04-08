@@ -201,4 +201,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "[ Projectile Subclass Properties ]|RTO")
 	const UProjectileWeaponPDA* ProjectileWeaponDataPtr;
 	// const makes so i cant change anything that the pointer is pointing to, such as values of hit, I can change the pointer it self, to ref other asset, I can call Functions stil
+	
+	private:
+	float TimeToFire;
 };

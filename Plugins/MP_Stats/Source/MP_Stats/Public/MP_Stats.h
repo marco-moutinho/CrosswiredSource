@@ -4,7 +4,7 @@
 
 #include "Modules/ModuleManager.h"
 
-class FMP_DamageModule : public IModuleInterface
+class FMP_StatsModule : public IModuleInterface
 {
 public:
 

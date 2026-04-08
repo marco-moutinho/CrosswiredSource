@@ -3,6 +3,8 @@
 
 #include "ProjectileBase.h"
 
+#include "MP_Stats/Public/Damageable.h"
+
 // Sets default values
 AProjectileBase::AProjectileBase()
 {
@@ -47,10 +49,37 @@ void AProjectileBase::Method_InitializeProjectileComponent()
 	
 	// set the projectile movement component properties
 	_ProjectileMovementComponent->UpdatedComponent = RootComponent;
+	
+	// Set projectile component speeds
+	//Function_CalculateAndSetProjectileSpeed(); //<-need to set this later, call on a CUSTOM initializer, maybe from weapon
+	
+	
 }
 
 void AProjectileBase::Function_OnProjectileHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit)
 {
+	float LcDamage;
+	if (ProjectilePDA.IsValid())
+	{
+		 LcDamage = ProjectilePDA.LoadSynchronous()->Damage;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[MARCO] : void AProjectileBase::Function_OnProjectileHit() : ProjectilePDA.IsValid() = false"));
+		return;
+	}
+	
+	if (OtherActor != nullptr && OtherActor->Implements<UDamageable>())
+	{
+		IDamageable::Execute_IFunction_ReceiveDamage(OtherActor, LcDamage);
+		
+		// debug feedback
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Turquoise, "ProjectileOnHit()");
+		}
+	}
+	
 	// return to pool
 	this->Function_ReturnToPool();
 }
@@ -59,27 +88,6 @@ void AProjectileBase::Function_OnProjectileHit(AActor* SelfActor, AActor* OtherA
 void AProjectileBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	//DrawDebugDirectionalArrow(
-	//	GetWorld(),
-	//	GetActorLocation(), // Start
-	//	GetActorLocation() + (GetActorForwardVector() * 50.0f), // End
-	//	100.0f, // ArrowSize
-	//	FColor::Blue,
-	//	false, // bPersistentLines
-	//	-1, // LifeTime
-	//	0, // DepthPriority
-	//	3.0f // Thickness
-	//);
-
-	//float SRadius = 5;
-	//int SSegments = 6;
-	//float SLifetime = -1;
-	//uint8 SDepth = 0;
-	//float SThickness = 1;
-
-	//DrawDebugSphere(GetWorld(), this->GetActorLocation(), SRadius, SSegments, FColor::Turquoise, false, SLifetime, SDepth, SThickness);
-
 }
 
 void AProjectileBase::Function_ResetProjectile(const FTransform InLaunchTransform) // this function is called by the Pool that is called by the weapon ( so projectile hit : return to pool() > Weapon call Retrieve from pool and if so call this )
@@ -105,7 +113,7 @@ void AProjectileBase::Function_ResetProjectile(const FTransform InLaunchTransfor
 	// Reactivate
 	_ProjectileMovementComponent->Activate(true);
 
-	// Relaunch (WORLD SPACE — important)
+	// Relaunch (WORLD SPACE ï¿½ important)
 	const FVector LaunchVelocity = GetActorForwardVector() * _ProjectileMovementComponent->InitialSpeed;
 	_ProjectileMovementComponent->Velocity = LaunchVelocity;
 	_ProjectileMovementComponent->UpdateComponentVelocity();
@@ -144,6 +152,36 @@ void AProjectileBase::Function_ReturnToPool()
 	else {
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 60, FColor::Red, this->GetName() + " - void AProjectileBase::Function_ReturnToPool() - LcWasSuccefully = false"); }
 	}
+}
+
+void AProjectileBase::Function_UpdateProjectileSpeed(const float InMultiplier)
+{
+	if (InMultiplier <= 0.0f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MARCO] : void AProjectileBase::Function_UpdateProjectileSpeed(const float InMultiplier) : InMultiplier <= 0.0f, I will set it to 1.0f !"))
+		ProjectileModifiedSpeed = 1.0f;
+		return;
+	}
+	ProjectileModifiedSpeed = InMultiplier;
+}
+
+void AProjectileBase::Function_CalculateAndSetProjectileSpeed()
+{
+	// safety check
+	if (ProjectilePDA == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[MARCO] : void AProjectileBase::Function_CalculateAndSetProjectileSpeed() : if (ProjectilePDA == nullptr)"))
+		return;
+	}
+	// safety check
+	if (ProjectileSpeedMultiplier == 0.0f)
+	{
+		ProjectileModifiedSpeed = 1.0f;
+	}
+	// calculate
+	ProjectileModifiedSpeed = ProjectilePDA->Speed * ProjectileModifiedSpeed;
+	// set it
+	_ProjectileMovementComponent->MaxSpeed = ProjectileModifiedSpeed;
 }
 
 void AProjectileBase::IFunction_SetOnHold_Implementation()

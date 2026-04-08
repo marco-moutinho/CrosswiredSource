@@ -9,6 +9,8 @@
 #include "IPoolableActor.h" // interface that pool calls on actor ( to : activate & deactivate object )
 #include "IPoolable.h" // interface that this calls on/to pool
 #include "ProjectileInterface.h"
+#include "PDA_Projectile.h"
+
 
 #include "ProjectileBase.generated.h"
 
@@ -29,6 +31,19 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// added on 15-Mar-2026
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Projectile Base Data")
+	TSoftObjectPtr<UPDA_Projectile> ProjectilePDA;
+	
+	UPROPERTY()
+	float ProjectileModifiedSpeed;
+	UPROPERTY()
+	float ProjectileSpeedMultiplier;
+	UPROPERTY()
+	float ProjectileDamage;
+	UPROPERTY()
+	float ProjectileDamageMultiplier;
+	
 	/*
 	* Added on 29/11/2025
 	*/
@@ -50,6 +65,10 @@ public:
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	
+	// added on 15-mar-2026
+	//UFUNCTION()
+	//virtual void Function_InitialzationFromWeapon();
 
 protected:
 
@@ -70,6 +89,14 @@ protected:
 	// this function calls the pool interface function
 	//UFUNCTION() // do i need to write this? what i gain (and lost) by writing it?
 	virtual void Function_ReturnToPool(); // added on 26-Jan-2026
+	
+	// added on 15-Mar-2026
+	UFUNCTION(BlueprintCallable, Category = "[ Projectile Base ]")
+	virtual void Function_UpdateProjectileSpeed(const float InMultiplier);
+	
+	// added on 15-Mar-2026
+	UFUNCTION(BlueprintCallable, Category = "[ Projectile Base ]")
+	void Function_CalculateAndSetProjectileSpeed();
 
 
 public:

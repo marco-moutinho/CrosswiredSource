@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class MP_Damage : ModuleRules
+public class MP_Stats : ModuleRules
 {
-	public MP_Damage(ReadOnlyTargetRules Target) : base(Target)
+	public MP_Stats(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
@@ -27,6 +27,8 @@ public class MP_Damage : ModuleRules
 			{
 				"Core",
 				// ... add other public dependencies that you statically link with here ...
+				
+				"GameplayTags",
 			}
 			);
 			

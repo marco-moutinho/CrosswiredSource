@@ -1,15 +1,15 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MP_Damage.h"
+#include "MP_Stats.h"
 
-#define LOCTEXT_NAMESPACE "FMP_DamageModule"
+#define LOCTEXT_NAMESPACE "FMP_StatsModule"
 
-void FMP_DamageModule::StartupModule()
+void FMP_StatsModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 }
 
-void FMP_DamageModule::ShutdownModule()
+void FMP_StatsModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
@@ -17,4 +17,4 @@ void FMP_DamageModule::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 	
-IMPLEMENT_MODULE(FMP_DamageModule, MP_Damage)
+IMPLEMENT_MODULE(FMP_StatsModule, MP_Stats)

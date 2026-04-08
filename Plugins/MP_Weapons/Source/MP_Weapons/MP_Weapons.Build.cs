@@ -30,6 +30,7 @@ public class MP_Weapons : ModuleRules
 				"UMG",
                 "EnhancedInput",
 				"MP_Utilities",
+				"MP_Stats"
             }
 			);
 			
